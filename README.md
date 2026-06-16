@@ -208,6 +208,14 @@ For complex ERP/CRM numbering requirements, the following properties are support
 ]
 ```
 
+### 8. Soft Deletes & Concurrency Best Practices
+
+To ensure data integrity and prevent service disruption in high-volume production systems, the package implements the following behaviors:
+
+*   **Soft Deletes Protection**: If your Eloquent model uses Laravel's `SoftDeletes` trait, deleting a record (soft delete) will **not** trigger sequence number recycling. The sequence number remains reserved on the soft-deleted record in the database. This allows restoring the model via `$model->restore()` without causing duplicate sequence collisions. The sequence number is only recycled when the model is permanently deleted via `$model->forceDelete()`.
+*   **Preventing PHP-FPM Thread Exhaustion**: Under the `database` locking driver, the package automatically sets session-level or local transaction-level lock wait timeouts on the database connection (using MySQL's `innodb_lock_wait_timeout`, Postgres's `lock_timeout`, SQL Server's `LOCK_TIMEOUT`, or SQLite's `busy_timeout`). If a transaction holds a sequence lock for too long, subsequent requests fail fast with a `SequenceLockException` after the configured timeout (default 5s) instead of blocking indefinitely, preventing worker exhaustion and gateway 502/504 errors.
+*   **Pre-Allocation & Transaction Modes**: High-performance pre-allocation (`pre_allocation.enabled => true`) cannot be used together with the `'gapless'` transaction mode. In `'gapless'` mode, a rolled-back transaction would roll back the database counter but keep the pre-allocated block in memory/cache, resulting in duplicate sequence collisions. To use pre-allocation, set `transaction_mode => 'gap_tolerant'`.
+
 ---
 
 ## Manual Generation (Facade)
@@ -284,19 +292,21 @@ return [
     'locking' => [
         'driver' => 'database',   // 'database' (Pessimistic lock), 'cache' (Atomic lock), or 'none'
         'cache_store' => null,    // cache connection name for atomic locks
-        'timeout' => 5,           // seconds to block waiting for a lock
-        'retry_interval' => 100,  // milliseconds between retry attempts
+        'timeout' => 5,           // seconds to block waiting for a lock (applies native DB lock timeout for MySQL, Postgres, SQL Server, SQLite)
+        'retry_interval' => 100,  // milliseconds between retry attempts (applies if locking driver is cache)
     ],
 
     // Transaction Mode:
     // 'gapless': increments within model transaction (rolls back on failure; no gaps)
     // 'gap_tolerant': increments in isolated transaction (commits immediately; minimizes lock duration)
+    // Note: 'gapless' is incompatible with pre-allocation.
     'transaction_mode' => 'gapless',
 
     // Hi/Lo Pre-Allocation Caching
     'pre_allocation' => [
         'enabled' => false,
         'block_size' => 50, // Grab 50 numbers at a time
+        'store' => null,    // dedicated cache store name (e.g. 'redis') to prevent gaps from LRU eviction/flushes
     ],
 
     // Audit Tracking

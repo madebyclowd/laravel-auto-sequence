@@ -85,6 +85,13 @@ class HasSequenceNumberTest extends TestCase
             $table->string('seq_continuous')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('test_soft_delete_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_soft')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
     }
 
     /** @test */
@@ -160,6 +167,7 @@ class HasSequenceNumberTest extends TestCase
     {
         config(['sequenceable.pre_allocation.enabled' => true]);
         config(['sequenceable.pre_allocation.block_size' => 5]);
+        config(['sequenceable.transaction_mode' => 'gap_tolerant']);
 
         $invoice1 = TestInvoice::create();
         $invoice2 = TestInvoice::create();
@@ -443,6 +451,105 @@ class HasSequenceNumberTest extends TestCase
 
         Sequence::generate('order', 'SO', '202606', '{seq}', 5, 'default', null, null, 1, 0);
     }
+
+    /** @test */
+    public function test_soft_deletes_do_not_recycle_sequence_numbers()
+    {
+        $inv1 = TestSoftDeleteInvoice::create(); // SD-1
+        $inv2 = TestSoftDeleteInvoice::create(); // SD-2
+
+        $this->assertEquals('SD-1', $inv1->seq_soft);
+        $this->assertEquals('SD-2', $inv2->seq_soft);
+
+        // Soft delete inv1
+        $inv1->delete();
+
+        // Ensure the sequence is NOT in the recycle table
+        $recycledTable = config('sequenceable.recycled_table', 'sequence_recycled');
+        $exists = DB::table($recycledTable)
+            ->where('module', 'adv_soft')
+            ->where('number', 1)
+            ->exists();
+        $this->assertFalse($exists);
+
+        // Next created invoice should be SD-3, not SD-1
+        $inv3 = TestSoftDeleteInvoice::create();
+        $this->assertEquals('SD-3', $inv3->seq_soft);
+    }
+
+    /** @test */
+    public function test_force_deletes_do_recycle_sequence_numbers()
+    {
+        $inv1 = TestSoftDeleteInvoice::create(); // SD-1
+        $inv2 = TestSoftDeleteInvoice::create(); // SD-2
+
+        // Force delete inv1
+        $inv1->forceDelete();
+
+        // Ensure the sequence IS in the recycle table
+        $recycledTable = config('sequenceable.recycled_table', 'sequence_recycled');
+        $exists = DB::table($recycledTable)
+            ->where('module', 'adv_soft')
+            ->where('number', 1)
+            ->exists();
+        $this->assertTrue($exists);
+
+        // Next created invoice should recycle SD-1
+        $inv3 = TestSoftDeleteInvoice::create();
+        $this->assertEquals('SD-1', $inv3->seq_soft);
+    }
+
+    /** @test */
+    public function test_pre_allocation_gapless_configuration_guard()
+    {
+        config(['sequenceable.pre_allocation.enabled' => true]);
+        config(['sequenceable.transaction_mode' => 'gapless']);
+
+        $this->expectException(SequenceableException::class);
+        $this->expectExceptionMessage("High-performance pre-allocation cannot be used with 'gapless' transaction mode.");
+
+        TestInvoice::create();
+    }
+
+    /** @test */
+    public function test_pre_allocation_uses_configured_cache_store()
+    {
+        config(['sequenceable.pre_allocation.enabled' => true]);
+        config(['sequenceable.transaction_mode' => 'gap_tolerant']);
+        config(['sequenceable.pre_allocation.store' => 'array']);
+
+        $invoice = TestInvoice::create();
+        $this->assertNotNull($invoice->number);
+
+        $currentPeriod = now()->format('Ym');
+        $cacheKey = "sequenceable_pool:invoice:INV:{$currentPeriod}:default";
+
+        $this->assertTrue(\Illuminate\Support\Facades\Cache::store('array')->has($cacheKey));
+    }
+
+    /** @test */
+    public function test_database_lock_timeout_is_applied()
+    {
+        config(['sequenceable.locking.driver' => 'database']);
+        config(['sequenceable.locking.timeout' => 3]);
+
+        $queries = [];
+        DB::listen(function ($query) use (&$queries) {
+            $queries[] = $query->sql;
+        });
+
+        TestInvoice::create();
+
+        $hasPragma = false;
+        foreach ($queries as $sql) {
+            if (str_contains($sql, 'PRAGMA busy_timeout = 3000')) {
+                $hasPragma = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($hasPragma, "PRAGMA busy_timeout = 3000 was not executed on SQLite connection");
+    }
 }
 
 // Test Models definition
@@ -652,6 +759,28 @@ class TestContinuousInvoice extends Model implements Sequenceable
                 'continuous' => true,
                 'period' => 'never',
                 'format_template' => 'CN-{seq}',
+            ],
+        ];
+    }
+}
+
+class TestSoftDeleteInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber, \Illuminate\Database\Eloquent\SoftDeletes;
+
+    protected $fillable = ['seq_soft'];
+
+    protected $table = 'test_soft_delete_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_soft' => [
+                'module' => 'adv_soft',
+                'type_code' => 'SD',
+                'continuous' => true,
+                'period' => 'never',
+                'format_template' => 'SD-{seq}',
             ],
         ];
     }

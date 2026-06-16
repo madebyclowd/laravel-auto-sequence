@@ -69,6 +69,10 @@ trait HasSequenceNumber
                 return;
             }
 
+            if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
+                return;
+            }
+
             $rawConfigs = $model->getSequenceConfig();
             $configs = isset($rawConfigs['module']) || isset($rawConfigs['type_code']) || isset($rawConfigs['type_relation'])
                 ? [($rawConfigs['column'] ?? 'number') => $rawConfigs]

@@ -85,6 +85,11 @@ class SequenceManager
 
         // 2. Standard generation
         if (config('sequenceable.pre_allocation.enabled', false) && ! $continuous) {
+            if (config('sequenceable.transaction_mode', 'gapless') === 'gapless') {
+                throw new Exceptions\SequenceableException(
+                    "High-performance pre-allocation cannot be used with 'gapless' transaction mode. Please set transaction_mode to 'gap_tolerant' or disable pre-allocation."
+                );
+            }
             $nextNumber = $this->generateViaPreAllocation(
                 $resolvedConnection,
                 $module,
@@ -159,7 +164,8 @@ class SequenceManager
         // Clear pre-allocation cache if active
         if (config('sequenceable.pre_allocation.enabled', false)) {
             $cacheKey = $this->getPreAllocationCacheKey($module, $typeCode, $period, $scope);
-            Cache::forget($cacheKey);
+            $cacheStore = config('sequenceable.pre_allocation.store');
+            Cache::store($cacheStore)->forget($cacheKey);
         }
 
         $auditEnabled = config('sequenceable.audit.enabled', false);
@@ -237,21 +243,16 @@ class SequenceManager
             }
         }
 
-        // Database locking (Pessimistic) with retry loop
-        $retryIntervalMs = config('sequenceable.locking.retry_interval', 100);
-        $startTime = microtime(true);
+        // Database locking (Pessimistic)
+        $connection = DB::connection($connectionName);
 
-        while (true) {
-            try {
-                return DB::connection($connectionName)->transaction(function () use ($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue) {
-                    return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $step);
-                });
-            } catch (\Throwable $e) {
-                if ((microtime(true) - $startTime) >= $timeoutSeconds) {
-                    throw SequenceLockException::lockAcquisitionFailed("{$module}:{$typeCode}", $timeoutSeconds);
-                }
-                usleep($retryIntervalMs * 1000);
-            }
+        try {
+            return $connection->transaction(function () use ($connection, $connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $timeoutSeconds) {
+                $this->setDatabaseLockTimeout($connection, $timeoutSeconds);
+                return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $step);
+            });
+        } catch (\Throwable $e) {
+            throw SequenceLockException::lockAcquisitionFailed("{$module}:{$typeCode}", $timeoutSeconds, $e);
         }
     }
 
@@ -271,14 +272,16 @@ class SequenceManager
         $cacheKey = $this->getPreAllocationCacheKey($module, $typeCode, $period, $scope);
         $blockSize = (int) config('sequenceable.pre_allocation.block_size', 50);
         $timeoutSeconds = config('sequenceable.locking.timeout', 5);
+        $cacheStore = config('sequenceable.pre_allocation.store');
+        $cache = Cache::store($cacheStore);
 
         // Fetch current block from cache
-        $cached = Cache::get($cacheKey);
+        $cached = $cache->get($cacheKey);
 
         if ($cached && ($cached['current'] + $step) <= $cached['max']) {
             $newCurrent = $cached['current'] + $step;
             $cached['current'] = $newCurrent;
-            Cache::put($cacheKey, $cached, 86400); // Cache for 24h
+            $cache->put($cacheKey, $cached, 86400); // Cache for 24h
 
             return [
                 'number' => $newCurrent,
@@ -304,11 +307,11 @@ class SequenceManager
             }
 
             // Double check cache after acquiring lock
-            $cached = Cache::get($cacheKey);
+            $cached = $cache->get($cacheKey);
             if ($cached && ($cached['current'] + $step) <= $cached['max']) {
                 $newCurrent = $cached['current'] + $step;
                 $cached['current'] = $newCurrent;
-                Cache::put($cacheKey, $cached, 86400);
+                $cache->put($cacheKey, $cached, 86400);
 
                 return [
                     'number' => $newCurrent,
@@ -325,7 +328,7 @@ class SequenceManager
             $max = $dbResult['number'];
             $current = $max - $incrementSize + $step;
 
-            Cache::put($cacheKey, [
+            $cache->put($cacheKey, [
                 'current' => $current,
                 'max' => $max,
                 'template' => $dbResult['template'],
@@ -596,6 +599,26 @@ class SequenceManager
                     'number' => $number,
                     'created_at' => now(),
                 ]);
+        }
+    }
+
+    /**
+     * Set the database connection session/local lock wait timeout.
+     */
+    protected function setDatabaseLockTimeout(\Illuminate\Database\Connection $connection, int $timeoutSeconds): void
+    {
+        $driver = $connection->getDriverName();
+
+        try {
+            match ($driver) {
+                'mysql' => $connection->statement("SET SESSION innodb_lock_wait_timeout = {$timeoutSeconds}"),
+                'pgsql' => $connection->statement("SET LOCAL lock_timeout = " . ($timeoutSeconds * 1000)),
+                'sqlsrv' => $connection->statement("SET LOCK_TIMEOUT " . ($timeoutSeconds * 1000)),
+                'sqlite' => $connection->statement("PRAGMA busy_timeout = " . ($timeoutSeconds * 1000)),
+                default => null,
+            };
+        } catch (\Throwable $e) {
+            // Silence exceptions to avoid failing if user lacks permissions or driver has custom configuration
         }
     }
 }

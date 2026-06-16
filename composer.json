@@ -1,17 +1,22 @@
 {
     "name": "madebyclowd/laravel-sequenceable",
-    "description": "Enterprise-grade concurrency-safe number sequence auto-generator for Laravel Eloquent models.",
+    "description": "Enterprise-grade, highly customizable, and concurrency-safe number sequence auto-generator for Laravel Eloquent models (e.g., Invoices, Orders, CRM records, ERP document numbering). Supports pessimistic locking, Redis locking, and soft deletes.",
     "license": "MIT",
     "keywords": [
         "laravel",
         "sequence",
-        "sequenceable",
+        "sequence-generator",
         "autoincrement",
         "serial-number",
         "invoice-number",
         "order-number",
+        "document-numbering",
+        "gapless-sequence",
         "concurrency",
-        "locking"
+        "pessimistic-locking",
+        "redis-lock",
+        "soft-deletes",
+        "erp-numbering"
     ],
     "authors": [
         {

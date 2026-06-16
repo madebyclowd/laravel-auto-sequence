@@ -81,10 +81,18 @@ return [
     | them in-memory (using the cache store). Highly recommended for flash sales,
     | high-volume API endpoints, or bulk imports to prevent DB lock queues.
     |
+    | Note: Pre-allocation is incompatible with 'gapless' transaction mode.
+    | To use pre-allocation, transaction_mode must be set to 'gap_tolerant'.
+    |
+    | You can also define a dedicated, non-evicting cache store (e.g. Redis)
+    | to prevent gaps due to LRU cache eviction or cache clears.
+    | Set to null to use the default cache store.
+    |
     */
     'pre_allocation' => [
         'enabled' => false,
         'block_size' => 50,
+        'store' => null,
     ],
 
     /*

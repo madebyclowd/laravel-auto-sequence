@@ -1,0 +1,50 @@
+{
+    "name": "madebyclowd/laravel-sequenceable",
+    "description": "Enterprise-grade concurrency-safe number sequence auto-generator for Laravel Eloquent models.",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "sequence",
+        "sequenceable",
+        "autoincrement",
+        "serial-number",
+        "invoice-number",
+        "order-number",
+        "concurrency",
+        "locking"
+    ],
+    "authors": [
+        {
+            "name": "I Gede Widiantara",
+            "email": "widiantara@clowdlab.com",
+            "homepage": "https://github.com/wawanwidiantara"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "illuminate/database": "^11.0|^12.0|^13.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.13",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^10.0|^11.0|^12.0|^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MadeByClowd\\Sequenceable\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MadeByClowd\\Sequenceable\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MadeByClowd\\Sequenceable\\SequenceableServiceProvider"
+            ]
+        }
+    }
+}

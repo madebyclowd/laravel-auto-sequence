@@ -4,21 +4,19 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
-An enterprise-grade, highly customizable, and concurrency-safe number sequence auto-generator for Laravel Eloquent models (e.g., Invoices, Orders, CRM records, etc.).
+A concurrency-safe and customizable sequence number generator for Laravel Eloquent models (e.g., Invoices, Orders, CRM records, etc.).
 
 ---
 
-## Why Choose Laravel AutoSequence?
+## Features
 
-Unlike other basic sequence generators on Packagist, this package is designed for enterprise systems:
-
-*   **Concurrency Safe**: Employs pessimistic database locking (`SELECT ... FOR UPDATE`) or Redis-based distributed locks with automatic retry backoffs to prevent duplicate number generation under heavy load.
-*   **Hi/Lo Pre-Allocation Caching**: Can allocate sequence numbers in blocks (e.g., 50 at a time) and increment them in-memory, eliminating database lock contention under extreme throughput.
+*   **Concurrency Safety**: Utilizes pessimistic database locking (`SELECT ... FOR UPDATE`) or Redis-based distributed locks to prevent duplicate number generation.
+*   **Hi/Lo Pre-Allocation Caching**: Optionally allocates sequence numbers in blocks (e.g., 50 at a time) and increments them in-memory to reduce database lock contention.
 *   **Composite Key Partitioning**: Segregates counters using composite primary keys `['module', 'type_code', 'period', 'scope']`. 
-*   **Zero-Downtime Period Resets**: Automatically resets counters on date boundaries (daily, weekly, monthly, yearly) or custom fiscal periods without deleting historical counts.
-*   **Dynamic Rules & Scopes**: Resolve type prefixes from model relations (e.g. `$invoice->branch->code`) and scope sequences by organizational units (e.g. `$invoice->tenant_id`).
-*   **Flexible Format Placeholders**: Rich token parser supporting shorthands (`{YYYY}`, `{MM}`), custom PHP dates (`{date:d-M-Y}`), dynamic model attributes (`{attribute:customer_code}`), and random strings (`{rand:8}`).
-*   **Verification & Repair Tooling**: Command-line tools to audit model records, detect counter drift, and repair sequence state in one click.
+*   **Period Resets**: Automatically resets counters on date boundaries (daily, weekly, monthly, yearly) or custom fiscal periods.
+*   **Dynamic Rules & Scopes**: Resolves type prefixes from model relations (e.g. `$invoice->branch->code`) and scopes sequences by organizational units (e.g. `$invoice->tenant_id`).
+*   **Flexible Format Placeholders**: Supports template placeholders like date tokens (`{YYYY}`, `{MM}`, `{date:d-M-Y}`), dynamic model attributes (`{attribute:customer_code}`), and random strings (`{rand:8}`).
+*   **Verification & Repair Commands**: Includes Artisan commands to audit model records, detect counter drift, and repair sequence state.
 
 ---
 
@@ -179,8 +177,8 @@ Customize your formatting templates dynamically using closures or fetch nested r
 ]
 ```
 
-### 7. Advanced Enterprise Features
-For complex ERP/CRM numbering requirements, the following properties are supported directly within the model sequence configuration:
+### 7. Additional Configuration Options
+The following additional configuration options are supported within the model sequence settings:
 
 ```php
 'number' => [

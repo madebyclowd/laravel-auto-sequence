@@ -1,6 +1,6 @@
 {
     "name": "madebyclowd/laravel-auto-sequence",
-    "description": "Enterprise-grade, highly customizable, and concurrency-safe number sequence auto-generator for Laravel Eloquent models (e.g., Invoices, Orders, CRM records, ERP document numbering). Supports pessimistic locking, Redis locking, and soft deletes.",
+    "description": "A concurrency-safe and customizable sequence number generator for Laravel Eloquent models, with support for database/Redis locking and soft deletes.",
     "license": "MIT",
     "keywords": [
         "laravel",

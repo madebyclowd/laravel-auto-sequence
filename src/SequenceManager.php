@@ -4,6 +4,7 @@ namespace MadeByClowd\Sequenceable;
 
 use Closure;
 use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -249,6 +250,7 @@ class SequenceManager
         try {
             return $connection->transaction(function () use ($connection, $connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $timeoutSeconds) {
                 $this->setDatabaseLockTimeout($connection, $timeoutSeconds);
+
                 return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $step);
             });
         } catch (\Throwable $e) {
@@ -605,16 +607,16 @@ class SequenceManager
     /**
      * Set the database connection session/local lock wait timeout.
      */
-    protected function setDatabaseLockTimeout(\Illuminate\Database\Connection $connection, int $timeoutSeconds): void
+    protected function setDatabaseLockTimeout(Connection $connection, int $timeoutSeconds): void
     {
         $driver = $connection->getDriverName();
 
         try {
             match ($driver) {
                 'mysql' => $connection->statement("SET SESSION innodb_lock_wait_timeout = {$timeoutSeconds}"),
-                'pgsql' => $connection->statement("SET LOCAL lock_timeout = " . ($timeoutSeconds * 1000)),
-                'sqlsrv' => $connection->statement("SET LOCK_TIMEOUT " . ($timeoutSeconds * 1000)),
-                'sqlite' => $connection->statement("PRAGMA busy_timeout = " . ($timeoutSeconds * 1000)),
+                'pgsql' => $connection->statement('SET LOCAL lock_timeout = '.($timeoutSeconds * 1000)),
+                'sqlsrv' => $connection->statement('SET LOCK_TIMEOUT '.($timeoutSeconds * 1000)),
+                'sqlite' => $connection->statement('PRAGMA busy_timeout = '.($timeoutSeconds * 1000)),
                 default => null,
             };
         } catch (\Throwable $e) {

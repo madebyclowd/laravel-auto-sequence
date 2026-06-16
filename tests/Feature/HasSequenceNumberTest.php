@@ -5,6 +5,7 @@ namespace MadeByClowd\Sequenceable\Tests\Feature;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
@@ -524,7 +525,7 @@ class HasSequenceNumberTest extends TestCase
         $currentPeriod = now()->format('Ym');
         $cacheKey = "sequenceable_pool:invoice:INV:{$currentPeriod}:default";
 
-        $this->assertTrue(\Illuminate\Support\Facades\Cache::store('array')->has($cacheKey));
+        $this->assertTrue(Cache::store('array')->has($cacheKey));
     }
 
     /** @test */
@@ -548,7 +549,7 @@ class HasSequenceNumberTest extends TestCase
             }
         }
 
-        $this->assertTrue($hasPragma, "PRAGMA busy_timeout = 3000 was not executed on SQLite connection");
+        $this->assertTrue($hasPragma, 'PRAGMA busy_timeout = 3000 was not executed on SQLite connection');
     }
 }
 

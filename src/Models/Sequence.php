@@ -1,6 +1,6 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Models;
+namespace MadeByClowd\AutoSequence\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -57,7 +57,7 @@ class Sequence extends Model
      */
     public function getTable(): string
     {
-        return config('sequenceable.table', 'sequences');
+        return config('auto-sequence.table', 'sequences');
     }
 
     /**
@@ -65,7 +65,7 @@ class Sequence extends Model
      */
     public function getConnectionName(): ?string
     {
-        return config('sequenceable.connection') ?? parent::getConnectionName();
+        return config('auto-sequence.connection') ?? parent::getConnectionName();
     }
 
     /**
@@ -111,12 +111,12 @@ class Sequence extends Model
      */
     public function creator(): ?BelongsTo
     {
-        if (! config('sequenceable.audit.enabled', false)) {
+        if (! config('auto-sequence.audit.enabled', false)) {
             return null;
         }
 
-        $userModel = config('sequenceable.audit.user_model', 'App\Models\User');
-        $createdByColumn = config('sequenceable.audit.created_by_column', 'created_by');
+        $userModel = config('auto-sequence.audit.user_model', 'App\Models\User');
+        $createdByColumn = config('auto-sequence.audit.created_by_column', 'created_by');
 
         return $this->belongsTo($userModel, $createdByColumn);
     }
@@ -126,12 +126,12 @@ class Sequence extends Model
      */
     public function updater(): ?BelongsTo
     {
-        if (! config('sequenceable.audit.enabled', false)) {
+        if (! config('auto-sequence.audit.enabled', false)) {
             return null;
         }
 
-        $userModel = config('sequenceable.audit.user_model', 'App\Models\User');
-        $updatedByColumn = config('sequenceable.audit.updated_by_column', 'updated_by');
+        $userModel = config('auto-sequence.audit.user_model', 'App\Models\User');
+        $updatedByColumn = config('auto-sequence.audit.updated_by_column', 'updated_by');
 
         return $this->belongsTo($userModel, $updatedByColumn);
     }

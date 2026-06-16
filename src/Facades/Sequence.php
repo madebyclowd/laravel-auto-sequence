@@ -1,9 +1,9 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Facades;
+namespace MadeByClowd\AutoSequence\Facades;
 
 use Illuminate\Support\Facades\Facade;
-use MadeByClowd\Sequenceable\SequenceManager;
+use MadeByClowd\AutoSequence\SequenceManager;
 
 /**
  * @method static string generate(string $module, string $typeCode, ?string $period = null, mixed $formatTemplate = null, int $padLength = 5, string $scope = 'default', ?\Illuminate\Database\Eloquent\Model $model = null, ?string $connection = null, int $startValue = 1, int $step = 1, bool $continuous = false, ?int $maxValue = null)
@@ -20,6 +20,6 @@ class Sequence extends Facade
      */
     protected static function getFacadeAccessor(): string
     {
-        return 'sequenceable';
+        return 'auto-sequence';
     }
 }

@@ -1,5 +1,5 @@
 {
-    "name": "madebyclowd/laravel-sequenceable",
+    "name": "madebyclowd/laravel-auto-sequence",
     "description": "Enterprise-grade, highly customizable, and concurrency-safe number sequence auto-generator for Laravel Eloquent models (e.g., Invoices, Orders, CRM records, ERP document numbering). Supports pessimistic locking, Redis locking, and soft deletes.",
     "license": "MIT",
     "keywords": [
@@ -37,18 +37,18 @@
     },
     "autoload": {
         "psr-4": {
-            "MadeByClowd\\Sequenceable\\": "src/"
+            "MadeByClowd\\AutoSequence\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "MadeByClowd\\Sequenceable\\Tests\\": "tests/"
+            "MadeByClowd\\AutoSequence\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "MadeByClowd\\Sequenceable\\SequenceableServiceProvider"
+                "MadeByClowd\\AutoSequence\\AutoSequenceServiceProvider"
             ]
         }
     }

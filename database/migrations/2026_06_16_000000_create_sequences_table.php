@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function getConnection(): ?string
     {
-        return config('sequenceable.connection');
+        return config('auto-sequence.connection');
     }
 
     /**
@@ -19,7 +19,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $tableName = config('sequenceable.table', 'sequences');
+        $tableName = config('auto-sequence.table', 'sequences');
 
         Schema::connection($this->getConnection())->create($tableName, function (Blueprint $table) {
             $table->string('module', 50);
@@ -29,10 +29,10 @@ return new class extends Migration
             $table->bigInteger('current_number')->default(0);
             $table->string('format_template')->nullable();
 
-            if (config('sequenceable.audit.enabled', false)) {
-                $createdBy = config('sequenceable.audit.created_by_column', 'created_by');
-                $updatedBy = config('sequenceable.audit.updated_by_column', 'updated_by');
-                $idType = config('sequenceable.audit.user_id_type', 'bigInteger');
+            if (config('auto-sequence.audit.enabled', false)) {
+                $createdBy = config('auto-sequence.audit.created_by_column', 'created_by');
+                $updatedBy = config('auto-sequence.audit.updated_by_column', 'updated_by');
+                $idType = config('auto-sequence.audit.user_id_type', 'bigInteger');
 
                 switch ($idType) {
                     case 'uuid':
@@ -66,7 +66,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $tableName = config('sequenceable.table', 'sequences');
+        $tableName = config('auto-sequence.table', 'sequences');
 
         Schema::connection($this->getConnection())->dropIfExists($tableName);
     }

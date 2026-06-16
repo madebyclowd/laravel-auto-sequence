@@ -1,12 +1,12 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Console;
+namespace MadeByClowd\AutoSequence\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
-use MadeByClowd\Sequenceable\Contracts\Sequenceable;
-use MadeByClowd\Sequenceable\Facades\Sequence;
+use MadeByClowd\AutoSequence\Contracts\Sequenceable;
+use MadeByClowd\AutoSequence\Facades\Sequence;
 
 class VerifyCommand extends Command
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Contracts;
+namespace MadeByClowd\AutoSequence\Contracts;
 
 interface Sequenceable
 {

@@ -1,11 +1,11 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Traits;
+namespace MadeByClowd\AutoSequence\Traits;
 
 use Illuminate\Database\Eloquent\Model;
-use MadeByClowd\Sequenceable\Contracts\Sequenceable;
-use MadeByClowd\Sequenceable\Exceptions\SequenceableException;
-use MadeByClowd\Sequenceable\Facades\Sequence;
+use MadeByClowd\AutoSequence\Contracts\Sequenceable;
+use MadeByClowd\AutoSequence\Exceptions\AutoSequenceException;
+use MadeByClowd\AutoSequence\Facades\Sequence;
 
 trait HasSequenceNumber
 {
@@ -56,7 +56,7 @@ trait HasSequenceNumber
                     // Enforce manual override protection
                     $allowManual = (bool) ($config['allow_manual'] ?? true);
                     if (! $allowManual) {
-                        throw new SequenceableException(
+                        throw new AutoSequenceException(
                             "Manual assignment of sequence number on field '{$columnName}' is not allowed."
                         );
                     }

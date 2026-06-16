@@ -1,9 +1,9 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Console;
+namespace MadeByClowd\AutoSequence\Console;
 
 use Illuminate\Console\Command;
-use MadeByClowd\Sequenceable\Facades\Sequence;
+use MadeByClowd\AutoSequence\Facades\Sequence;
 
 class ResetCommand extends Command
 {

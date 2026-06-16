@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function getConnection(): ?string
     {
-        return config('sequenceable.connection');
+        return config('auto-sequence.connection');
     }
 
     /**
@@ -19,7 +19,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $tableName = config('sequenceable.recycled_table', 'sequence_recycled');
+        $tableName = config('auto-sequence.recycled_table', 'sequence_recycled');
 
         Schema::connection($this->getConnection())->create($tableName, function (Blueprint $table) {
             $table->bigIncrements('id');
@@ -40,7 +40,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $tableName = config('sequenceable.recycled_table', 'sequence_recycled');
+        $tableName = config('auto-sequence.recycled_table', 'sequence_recycled');
 
         Schema::connection($this->getConnection())->dropIfExists($tableName);
     }

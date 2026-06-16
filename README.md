@@ -1,14 +1,14 @@
-# Laravel Sequenceable
+# Laravel AutoSequence
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/madebyclowd/laravel-sequenceable.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-sequenceable)
-[![Total Downloads](https://img.shields.io/packagist/dt/madebyclowd/laravel-sequenceable.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-sequenceable)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
+[![Total Downloads](https://img.shields.io/packagist/dt/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
 An enterprise-grade, highly customizable, and concurrency-safe number sequence auto-generator for Laravel Eloquent models (e.g., Invoices, Orders, CRM records, etc.).
 
 ---
 
-## Why Choose Laravel Sequenceable?
+## Why Choose Laravel AutoSequence?
 
 Unlike other basic sequence generators on Packagist, this package is designed for enterprise systems:
 
@@ -27,7 +27,7 @@ Unlike other basic sequence generators on Packagist, this package is designed fo
 Install the package via Composer:
 
 ```bash
-composer require madebyclowd/laravel-sequenceable
+composer require madebyclowd/laravel-auto-sequence
 ```
 
 Run the interactive installation wizard to publish the configuration file, database migrations, AI developer skills, and run the database migrations:
@@ -42,14 +42,14 @@ php artisan sequence:install
 
 ### 1. Implement and Configure Your Model
 
-Add the `Sequenceable` contract and use the `HasSequenceNumber` trait on your Eloquent model:
+Add the `AutoSequence` contract and use the `HasSequenceNumber` trait on your Eloquent model:
 
 ```php
-use MadeByClowd\Sequenceable\Contracts\Sequenceable;
-use MadeByClowd\Sequenceable\Traits\HasSequenceNumber;
+use MadeByClowd\AutoSequence\Contracts\AutoSequence;
+use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
 use Illuminate\Database\Eloquent\Model;
 
-class Invoice extends Model implements Sequenceable
+class Invoice extends Model implements AutoSequence
 {
     use HasSequenceNumber;
 
@@ -197,7 +197,7 @@ For complex ERP/CRM numbering requirements, the following properties are support
     // Set a maximum limit. Throws a SequenceExhaustedException if exceeded
     'max_value' => 99999, 
     
-    // Enforce sequence integrity. Throws a SequenceableException if a manual value is set before saving
+    // Enforce sequence integrity. Throws a AutoSequenceException if a manual value is set before saving
     'allow_manual' => false, 
     
     // Enable D365 continuous sequence (recycles deleted numbers automatically)
@@ -223,7 +223,7 @@ To ensure data integrity and prevent service disruption in high-volume productio
 Inject sequence values programmatically (e.g. in custom jobs, observers, or seeds):
 
 ```php
-use MadeByClowd\Sequenceable\Facades\Sequence;
+use MadeByClowd\AutoSequence\Facades\Sequence;
 
 // Fetch and increment next sequence value (with optional connection, start value, step, continuous, max value)
 $number = Sequence::generate(
@@ -278,7 +278,7 @@ php artisan sequence:verify "App\Models\Invoice" number --type=INV --module=invo
 
 ---
 
-## Configuration (`config/sequenceable.php`)
+## Configuration (`config/auto-sequence.php`)
 
 Publishing configuration gives you full architectural control:
 

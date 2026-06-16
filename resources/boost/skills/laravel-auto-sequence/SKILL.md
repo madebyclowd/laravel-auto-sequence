@@ -1,12 +1,12 @@
 ---
-name: laravel-sequenceable
-description: "Use this skill for madebyclowd/laravel-sequenceable package in Laravel applications. ALWAYS use this skill when configuring or generating auto-incrementing document/record sequences, setting up multiple conditional sequence rules on models, adjusting concurrency database/Redis locks, setting up Hi/Lo pre-allocation caching, or running sequence artisan commands. Covers: HasSequenceNumber trait, Sequence facade, composite sequence key partitions, and sequence verification tools."
+name: laravel-auto-sequence
+description: "Use this skill for madebyclowd/laravel-auto-sequence package in Laravel applications. ALWAYS use this skill when configuring or generating auto-incrementing document/record sequences, setting up multiple conditional sequence rules on models, adjusting concurrency database/Redis locks, setting up Hi/Lo pre-allocation caching, or running sequence artisan commands. Covers: HasSequenceNumber trait, Sequence facade, composite sequence key partitions, and sequence verification tools."
 license: MIT
 metadata:
   author: madebyclowd
 ---
 
-# Laravel Sequenceable Development
+# Laravel AutoSequence Development
 
 ## Quick Reference
 
@@ -19,21 +19,21 @@ php artisan sequence:install
 
 To manually republish assets or Laravel Boost skills:
 ```bash
-php artisan vendor:publish --tag=sequenceable-config
-php artisan vendor:publish --tag=sequenceable-migrations
-php artisan vendor:publish --tag=sequenceable-boost-skills
+php artisan vendor:publish --tag=auto-sequence-config
+php artisan vendor:publish --tag=auto-sequence-migrations
+php artisan vendor:publish --tag=auto-sequence-boost-skills
 ```
 
 ### Basic Usage
 
-To add a sequence to a model, implement the `Sequenceable` contract and use the `HasSequenceNumber` trait:
+To add a sequence to a model, implement the `AutoSequence` contract and use the `HasSequenceNumber` trait:
 
 ```php
-use MadeByClowd\Sequenceable\Contracts\Sequenceable;
-use MadeByClowd\Sequenceable\Traits\HasSequenceNumber;
+use MadeByClowd\AutoSequence\Contracts\AutoSequence;
+use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
 use Illuminate\Database\Eloquent\Model;
 
-class Invoice extends Model implements Sequenceable
+class Invoice extends Model implements AutoSequence
 {
     use HasSequenceNumber;
 
@@ -207,7 +207,7 @@ public function getSequenceConfig(): array
 To manually query, increment, or recycle sequences in service classes, jobs, or custom commands:
 
 ```php
-use MadeByClowd\Sequenceable\Facades\Sequence;
+use MadeByClowd\AutoSequence\Facades\Sequence;
 
 // Fetch and increment next sequence value
 $number = Sequence::generate(
@@ -263,7 +263,7 @@ Sequence::reset('order', 'SO', '202606', 'tenant_1', 100); // Next number will b
 - **Bypassing the Trait check**: Manually assigning the sequence column to a value before saving will trigger the **Manual Override Protection**, skipping generation. Make sure the column is empty/null if you want the package to generate the value.
 - **Cache connection locks**: If using `'cache'` driver for locking, ensure your cache configuration (`config/cache.php`) supports locks (e.g. `redis`, `memcached`, `database` drivers. `file` and `array` do not support concurrent locks properly).
 - **Composite keys in DB**: If raw querying sequences, remember that the table primary key is composite `['module', 'type_code', 'period', 'scope']`. Always run queries enlisting all four columns to guarantee locking performance and accuracy.
-- **Hi/Lo Caching Reset**: If you manually alter a sequence counter directly in the database while `pre_allocation` is enabled, remember to clear the cached sequence pool using `Cache::store(config('sequenceable.pre_allocation.store'))->forget('sequenceable_pool:module:type:period:scope')` or by running `php artisan sequence:reset`.
+- **Hi/Lo Caching Reset**: If you manually alter a sequence counter directly in the database while `pre_allocation` is enabled, remember to clear the cached sequence pool using `Cache::store(config('auto-sequence.pre_allocation.store'))->forget('auto-sequence_pool:module:type:period:scope')` or by running `php artisan sequence:reset`.
 - **Soft Deletes & Recycling**: If a model uses Laravel's `SoftDeletes` trait, its sequence number is **not** recycled on soft delete to prevent collisions if the record is later restored. Recycling only occurs when the record is permanently deleted via `forceDelete()`.
 - **Pre-Allocation & Gapless Incompatibility**: High-performance pre-allocation (`pre_allocation.enabled => true`) cannot be used with `'gapless'` transaction mode. Ensure `transaction_mode` is set to `'gap_tolerant'` when enabling pre-allocation, otherwise a configuration exception will be thrown.
 - **Dedicated Pre-Allocation Cache Store**: To prevent silent gaps in pre-allocated sequences due to default cache flushes or LRU evictions, specify a dedicated, non-evicting cache store (e.g. Redis with `noeviction` policy) under `pre_allocation.store`.

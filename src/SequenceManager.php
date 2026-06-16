@@ -1,6 +1,6 @@
 <?php
 
-namespace MadeByClowd\Sequenceable;
+namespace MadeByClowd\AutoSequence;
 
 use Closure;
 use Illuminate\Contracts\Cache\LockProvider;
@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use MadeByClowd\Sequenceable\Exceptions\SequenceLockException;
-use MadeByClowd\Sequenceable\Models\Sequence;
+use MadeByClowd\AutoSequence\Exceptions\SequenceLockException;
+use MadeByClowd\AutoSequence\Models\Sequence;
 
 class SequenceManager
 {
@@ -46,13 +46,13 @@ class SequenceManager
         ?int $maxValue = null
     ): string {
         if ($padLength < 1) {
-            throw new Exceptions\SequenceableException("Sequence config 'pad_length' must be a positive integer greater than 0.");
+            throw new Exceptions\AutoSequenceException("Sequence config 'pad_length' must be a positive integer greater than 0.");
         }
         if ($startValue < 0) {
-            throw new Exceptions\SequenceableException("Sequence config 'start_value' must be greater than or equal to 0.");
+            throw new Exceptions\AutoSequenceException("Sequence config 'start_value' must be greater than or equal to 0.");
         }
         if ($step < 1) {
-            throw new Exceptions\SequenceableException("Sequence config 'step' must be a positive integer greater than 0.");
+            throw new Exceptions\AutoSequenceException("Sequence config 'step' must be a positive integer greater than 0.");
         }
 
         $period = $period ?? now()->format('Ym');
@@ -68,7 +68,7 @@ class SequenceManager
             $recycledNumber = $this->claimRecycledNumber($resolvedConnection, $module, $typeCode, $period, $scope);
             if ($recycledNumber !== null) {
                 if ($maxValue !== null && $recycledNumber > $maxValue) {
-                    throw new Exceptions\SequenceableException("Sequence [{$module}][{$typeCode}] has exceeded its maximum limit of {$maxValue}.");
+                    throw new Exceptions\AutoSequenceException("Sequence [{$module}][{$typeCode}] has exceeded its maximum limit of {$maxValue}.");
                 }
 
                 return $this->formatNumber(
@@ -85,9 +85,9 @@ class SequenceManager
         }
 
         // 2. Standard generation
-        if (config('sequenceable.pre_allocation.enabled', false) && ! $continuous) {
-            if (config('sequenceable.transaction_mode', 'gapless') === 'gapless') {
-                throw new Exceptions\SequenceableException(
+        if (config('auto-sequence.pre_allocation.enabled', false) && ! $continuous) {
+            if (config('auto-sequence.transaction_mode', 'gapless') === 'gapless') {
+                throw new Exceptions\AutoSequenceException(
                     "High-performance pre-allocation cannot be used with 'gapless' transaction mode. Please set transaction_mode to 'gap_tolerant' or disable pre-allocation."
                 );
             }
@@ -115,7 +115,7 @@ class SequenceManager
         }
 
         if ($maxValue !== null && $nextNumber['number'] > $maxValue) {
-            throw new Exceptions\SequenceableException("Sequence [{$module}][{$typeCode}] has exceeded its maximum limit of {$maxValue}.");
+            throw new Exceptions\AutoSequenceException("Sequence [{$module}][{$typeCode}] has exceeded its maximum limit of {$maxValue}.");
         }
 
         return $this->formatNumber(
@@ -163,15 +163,15 @@ class SequenceManager
         $userId = Auth::id();
 
         // Clear pre-allocation cache if active
-        if (config('sequenceable.pre_allocation.enabled', false)) {
+        if (config('auto-sequence.pre_allocation.enabled', false)) {
             $cacheKey = $this->getPreAllocationCacheKey($module, $typeCode, $period, $scope);
-            $cacheStore = config('sequenceable.pre_allocation.store');
+            $cacheStore = config('auto-sequence.pre_allocation.store');
             Cache::store($cacheStore)->forget($cacheKey);
         }
 
-        $auditEnabled = config('sequenceable.audit.enabled', false);
-        $createdByColumn = config('sequenceable.audit.created_by_column', 'created_by');
-        $updatedByColumn = config('sequenceable.audit.updated_by_column', 'updated_by');
+        $auditEnabled = config('auto-sequence.audit.enabled', false);
+        $createdByColumn = config('auto-sequence.audit.created_by_column', 'created_by');
+        $updatedByColumn = config('auto-sequence.audit.updated_by_column', 'updated_by');
 
         $attributes = [
             'current_number' => $resetTo,
@@ -218,14 +218,14 @@ class SequenceManager
         int $startValue = 1,
         int $step = 1
     ): array {
-        $lockingDriver = config('sequenceable.locking.driver', 'database');
-        $timeoutSeconds = config('sequenceable.locking.timeout', 5);
+        $lockingDriver = config('auto-sequence.locking.driver', 'database');
+        $timeoutSeconds = config('auto-sequence.locking.timeout', 5);
 
         if ($lockingDriver === 'cache') {
-            $lockStore = config('sequenceable.locking.cache_store');
+            $lockStore = config('auto-sequence.locking.cache_store');
             $store = Cache::store($lockStore);
             if (! $store->getStore() instanceof LockProvider) {
-                throw new Exceptions\SequenceableException(
+                throw new Exceptions\AutoSequenceException(
                     "The cache store '".($lockStore ?: config('cache.default'))."' does not support atomic locks. Please configure a compatible store (e.g. redis, database, memcached)."
                 );
             }
@@ -272,9 +272,9 @@ class SequenceManager
         int $step = 1
     ): array {
         $cacheKey = $this->getPreAllocationCacheKey($module, $typeCode, $period, $scope);
-        $blockSize = (int) config('sequenceable.pre_allocation.block_size', 50);
-        $timeoutSeconds = config('sequenceable.locking.timeout', 5);
-        $cacheStore = config('sequenceable.pre_allocation.store');
+        $blockSize = (int) config('auto-sequence.pre_allocation.block_size', 50);
+        $timeoutSeconds = config('auto-sequence.locking.timeout', 5);
+        $cacheStore = config('auto-sequence.pre_allocation.store');
         $cache = Cache::store($cacheStore);
 
         // Fetch current block from cache
@@ -292,10 +292,10 @@ class SequenceManager
         }
 
         // Cache empty or exhausted, fetch next block from database
-        $lockStore = config('sequenceable.locking.cache_store');
+        $lockStore = config('auto-sequence.locking.cache_store');
         $store = Cache::store($lockStore);
         if (! $store->getStore() instanceof LockProvider) {
-            throw new Exceptions\SequenceableException(
+            throw new Exceptions\AutoSequenceException(
                 "The cache store '".($lockStore ?: config('cache.default'))."' does not support atomic locks. Please configure a compatible store (e.g. redis, database, memcached)."
             );
         }
@@ -360,9 +360,9 @@ class SequenceManager
         int $step = 1
     ): array {
         $userId = Auth::id();
-        $auditEnabled = config('sequenceable.audit.enabled', false);
-        $createdByColumn = config('sequenceable.audit.created_by_column', 'created_by');
-        $updatedByColumn = config('sequenceable.audit.updated_by_column', 'updated_by');
+        $auditEnabled = config('auto-sequence.audit.enabled', false);
+        $createdByColumn = config('auto-sequence.audit.created_by_column', 'created_by');
+        $updatedByColumn = config('auto-sequence.audit.updated_by_column', 'updated_by');
 
         $sequence = Sequence::on($connectionName)
             ->where('module', $module)
@@ -497,7 +497,7 @@ class SequenceManager
      */
     protected function getPreAllocationCacheKey(string $module, string $typeCode, string $period, string $scope): string
     {
-        return "sequenceable_pool:{$module}:{$typeCode}:{$period}:{$scope}";
+        return "auto-sequence_pool:{$module}:{$typeCode}:{$period}:{$scope}";
     }
 
     /**
@@ -505,9 +505,9 @@ class SequenceManager
      */
     public function resolveConnectionName(?string $connectionOverride = null): ?string
     {
-        $connectionName = $connectionOverride ?? config('sequenceable.connection');
+        $connectionName = $connectionOverride ?? config('auto-sequence.connection');
 
-        if (config('sequenceable.transaction_mode', 'gapless') === 'gap_tolerant') {
+        if (config('auto-sequence.transaction_mode', 'gapless') === 'gap_tolerant') {
             $baseConnection = $connectionName ?? config('database.default');
             $baseConfig = config("database.connections.{$baseConnection}");
 
@@ -516,7 +516,7 @@ class SequenceManager
                 return $connectionName;
             }
 
-            $isolatedConnectionName = "sequenceable_isolated_{$baseConnection}";
+            $isolatedConnectionName = "auto-sequence_isolated_{$baseConnection}";
 
             if (! config()->has("database.connections.{$isolatedConnectionName}")) {
                 if ($baseConfig) {
@@ -540,7 +540,7 @@ class SequenceManager
         string $period,
         string $scope
     ): ?int {
-        $recycledTable = config('sequenceable.recycled_table', 'sequence_recycled');
+        $recycledTable = config('auto-sequence.recycled_table', 'sequence_recycled');
 
         return DB::connection($connectionName)->transaction(function () use ($connectionName, $recycledTable, $module, $typeCode, $period, $scope) {
             $record = DB::connection($connectionName)
@@ -578,7 +578,7 @@ class SequenceManager
         ?string $connection = null
     ): void {
         $resolvedConnection = $this->resolveConnectionName($connection);
-        $recycledTable = config('sequenceable.recycled_table', 'sequence_recycled');
+        $recycledTable = config('auto-sequence.recycled_table', 'sequence_recycled');
 
         // Prevent duplicates in the recycled queue
         $exists = DB::connection($resolvedConnection)

@@ -1,6 +1,6 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Tests\Feature;
+namespace MadeByClowd\AutoSequence\Tests\Feature;
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Database\Eloquent\Model;
@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
-use MadeByClowd\Sequenceable\Contracts\Sequenceable;
-use MadeByClowd\Sequenceable\Exceptions\SequenceableException;
-use MadeByClowd\Sequenceable\Facades\Sequence;
-use MadeByClowd\Sequenceable\Tests\TestCase;
-use MadeByClowd\Sequenceable\Traits\HasSequenceNumber;
+use MadeByClowd\AutoSequence\Contracts\Sequenceable;
+use MadeByClowd\AutoSequence\Exceptions\AutoSequenceException;
+use MadeByClowd\AutoSequence\Facades\Sequence;
+use MadeByClowd\AutoSequence\Tests\TestCase;
+use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 
@@ -166,9 +166,9 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_pre_allocation_cache_increments_atomically()
     {
-        config(['sequenceable.pre_allocation.enabled' => true]);
-        config(['sequenceable.pre_allocation.block_size' => 5]);
-        config(['sequenceable.transaction_mode' => 'gap_tolerant']);
+        config(['auto-sequence.pre_allocation.enabled' => true]);
+        config(['auto-sequence.pre_allocation.block_size' => 5]);
+        config(['auto-sequence.transaction_mode' => 'gap_tolerant']);
 
         $invoice1 = TestInvoice::create();
         $invoice2 = TestInvoice::create();
@@ -248,7 +248,7 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_it_automatically_publishes_boost_skills_when_boost_commands_run()
     {
-        $targetSkillPath = base_path('.github/skills/laravel-sequenceable/SKILL.md');
+        $targetSkillPath = base_path('.github/skills/laravel-auto-sequence/SKILL.md');
         $boostJsonPath = base_path('boost.json');
 
         if (file_exists($targetSkillPath)) {
@@ -276,7 +276,7 @@ class HasSequenceNumberTest extends TestCase
         $this->assertFileExists($targetSkillPath);
 
         $boostJson = json_decode(file_get_contents($boostJsonPath), true);
-        $this->assertContains('laravel-sequenceable', $boostJson['skills']);
+        $this->assertContains('laravel-auto-sequence', $boostJson['skills']);
 
         // Cleanup
         if (file_exists($targetSkillPath)) {
@@ -358,7 +358,7 @@ class HasSequenceNumberTest extends TestCase
         TestMaxInvoice::create(); // mx-2
         TestMaxInvoice::create(); // mx-3
 
-        $this->expectException(SequenceableException::class);
+        $this->expectException(AutoSequenceException::class);
         $this->expectExceptionMessage('Sequence [adv_max][MX] has exceeded its maximum limit of 3');
 
         TestMaxInvoice::create(); // MX-4 should trigger exception
@@ -367,7 +367,7 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_it_enforces_manual_override_block()
     {
-        $this->expectException(SequenceableException::class);
+        $this->expectException(AutoSequenceException::class);
         $this->expectExceptionMessage("Manual assignment of sequence number on field 'seq_no_manual' is not allowed.");
 
         TestNoManualInvoice::create(['seq_no_manual' => 'MANUAL-123']);
@@ -414,22 +414,22 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_it_resolves_isolated_connection_names_correctly()
     {
-        config(['sequenceable.transaction_mode' => 'gap_tolerant']);
+        config(['auto-sequence.transaction_mode' => 'gap_tolerant']);
         config(['database.connections.mysql_test' => [
             'driver' => 'mysql',
             'host' => '127.0.0.1',
         ]]);
 
         $resolved = Sequence::resolveConnectionName('mysql_test');
-        $this->assertEquals('sequenceable_isolated_mysql_test', $resolved);
-        $this->assertTrue(config()->has('database.connections.sequenceable_isolated_mysql_test'));
-        $this->assertEquals('mysql', config('database.connections.sequenceable_isolated_mysql_test.driver'));
+        $this->assertEquals('auto-sequence_isolated_mysql_test', $resolved);
+        $this->assertTrue(config()->has('database.connections.auto-sequence_isolated_mysql_test'));
+        $this->assertEquals('mysql', config('database.connections.auto-sequence_isolated_mysql_test.driver'));
     }
 
     /** @test */
     public function test_it_validates_pad_length()
     {
-        $this->expectException(SequenceableException::class);
+        $this->expectException(AutoSequenceException::class);
         $this->expectExceptionMessage("Sequence config 'pad_length' must be a positive integer greater than 0.");
 
         Sequence::generate('order', 'SO', '202606', '{seq}', 0);
@@ -438,7 +438,7 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_it_validates_start_value()
     {
-        $this->expectException(SequenceableException::class);
+        $this->expectException(AutoSequenceException::class);
         $this->expectExceptionMessage("Sequence config 'start_value' must be greater than or equal to 0.");
 
         Sequence::generate('order', 'SO', '202606', '{seq}', 5, 'default', null, null, -1);
@@ -447,7 +447,7 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_it_validates_step()
     {
-        $this->expectException(SequenceableException::class);
+        $this->expectException(AutoSequenceException::class);
         $this->expectExceptionMessage("Sequence config 'step' must be a positive integer greater than 0.");
 
         Sequence::generate('order', 'SO', '202606', '{seq}', 5, 'default', null, null, 1, 0);
@@ -466,7 +466,7 @@ class HasSequenceNumberTest extends TestCase
         $inv1->delete();
 
         // Ensure the sequence is NOT in the recycle table
-        $recycledTable = config('sequenceable.recycled_table', 'sequence_recycled');
+        $recycledTable = config('auto-sequence.recycled_table', 'sequence_recycled');
         $exists = DB::table($recycledTable)
             ->where('module', 'adv_soft')
             ->where('number', 1)
@@ -488,7 +488,7 @@ class HasSequenceNumberTest extends TestCase
         $inv1->forceDelete();
 
         // Ensure the sequence IS in the recycle table
-        $recycledTable = config('sequenceable.recycled_table', 'sequence_recycled');
+        $recycledTable = config('auto-sequence.recycled_table', 'sequence_recycled');
         $exists = DB::table($recycledTable)
             ->where('module', 'adv_soft')
             ->where('number', 1)
@@ -503,10 +503,10 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_pre_allocation_gapless_configuration_guard()
     {
-        config(['sequenceable.pre_allocation.enabled' => true]);
-        config(['sequenceable.transaction_mode' => 'gapless']);
+        config(['auto-sequence.pre_allocation.enabled' => true]);
+        config(['auto-sequence.transaction_mode' => 'gapless']);
 
-        $this->expectException(SequenceableException::class);
+        $this->expectException(AutoSequenceException::class);
         $this->expectExceptionMessage("High-performance pre-allocation cannot be used with 'gapless' transaction mode.");
 
         TestInvoice::create();
@@ -515,15 +515,15 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_pre_allocation_uses_configured_cache_store()
     {
-        config(['sequenceable.pre_allocation.enabled' => true]);
-        config(['sequenceable.transaction_mode' => 'gap_tolerant']);
-        config(['sequenceable.pre_allocation.store' => 'array']);
+        config(['auto-sequence.pre_allocation.enabled' => true]);
+        config(['auto-sequence.transaction_mode' => 'gap_tolerant']);
+        config(['auto-sequence.pre_allocation.store' => 'array']);
 
         $invoice = TestInvoice::create();
         $this->assertNotNull($invoice->number);
 
         $currentPeriod = now()->format('Ym');
-        $cacheKey = "sequenceable_pool:invoice:INV:{$currentPeriod}:default";
+        $cacheKey = "auto-sequence_pool:invoice:INV:{$currentPeriod}:default";
 
         $this->assertTrue(Cache::store('array')->has($cacheKey));
     }
@@ -531,8 +531,8 @@ class HasSequenceNumberTest extends TestCase
     /** @test */
     public function test_database_lock_timeout_is_applied()
     {
-        config(['sequenceable.locking.driver' => 'database']);
-        config(['sequenceable.locking.timeout' => 3]);
+        config(['auto-sequence.locking.driver' => 'database']);
+        config(['auto-sequence.locking.timeout' => 3]);
 
         $queries = [];
         DB::listen(function ($query) use (&$queries) {

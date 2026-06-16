@@ -1,9 +1,9 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Console;
+namespace MadeByClowd\AutoSequence\Console;
 
 use Illuminate\Console\Command;
-use MadeByClowd\Sequenceable\Models\Sequence;
+use MadeByClowd\AutoSequence\Models\Sequence;
 
 class ListCommand extends Command
 {
@@ -28,7 +28,7 @@ class ListCommand extends Command
      */
     public function handle(): int
     {
-        $connectionName = config('sequenceable.connection');
+        $connectionName = config('auto-sequence.connection');
         $query = Sequence::on($connectionName);
 
         if ($module = $this->option('module')) {

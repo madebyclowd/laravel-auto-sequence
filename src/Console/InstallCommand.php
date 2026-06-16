@@ -1,6 +1,6 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Console;
+namespace MadeByClowd\AutoSequence\Console;
 
 use Illuminate\Console\Command;
 
@@ -40,7 +40,7 @@ class InstallCommand extends Command
         $publishConfig = $this->option('publish-config') || (! $hasExplicitOptions && $this->confirm('Do you want to publish the package configuration file?', true));
         if ($publishConfig) {
             $exit = $this->call('vendor:publish', [
-                '--tag' => 'sequenceable-config',
+                '--tag' => 'auto-sequence-config',
             ]);
             if ($exit !== self::SUCCESS) {
                 $this->components->error('Failed to publish configuration file.');
@@ -54,7 +54,7 @@ class InstallCommand extends Command
         $publishMigrations = $this->option('publish-migrations') || (! $hasExplicitOptions && $this->confirm('Do you want to publish the package migrations?', false));
         if ($publishMigrations) {
             $exit = $this->call('vendor:publish', [
-                '--tag' => 'sequenceable-migrations',
+                '--tag' => 'auto-sequence-migrations',
             ]);
             if ($exit !== self::SUCCESS) {
                 $this->components->error('Failed to publish migrations.');
@@ -68,7 +68,7 @@ class InstallCommand extends Command
         $publishSkills = $this->option('publish-skills') || (! $hasExplicitOptions && $this->confirm('Do you want to publish Sequenceable AI Agent skills for your workspace?', true));
         if ($publishSkills) {
             $exit = $this->call('vendor:publish', [
-                '--tag' => 'sequenceable-boost-skills',
+                '--tag' => 'auto-sequence-boost-skills',
             ]);
             if ($exit !== self::SUCCESS) {
                 $this->components->error('Failed to publish AI agent skills.');

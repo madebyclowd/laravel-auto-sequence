@@ -1,25 +1,25 @@
 <?php
 
-namespace MadeByClowd\Sequenceable;
+namespace MadeByClowd\AutoSequence;
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use MadeByClowd\Sequenceable\Console\InstallCommand;
-use MadeByClowd\Sequenceable\Console\ListCommand;
-use MadeByClowd\Sequenceable\Console\ResetCommand;
-use MadeByClowd\Sequenceable\Console\VerifyCommand;
+use MadeByClowd\AutoSequence\Console\InstallCommand;
+use MadeByClowd\AutoSequence\Console\ListCommand;
+use MadeByClowd\AutoSequence\Console\ResetCommand;
+use MadeByClowd\AutoSequence\Console\VerifyCommand;
 
-class SequenceableServiceProvider extends ServiceProvider
+class AutoSequenceServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
      */
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/sequenceable.php', 'sequenceable');
+        $this->mergeConfigFrom(__DIR__.'/../config/auto-sequence.php', 'auto-sequence');
 
-        $this->app->singleton('sequenceable', function ($app) {
+        $this->app->singleton('auto-sequence', function ($app) {
             return new SequenceManager;
         });
     }
@@ -30,25 +30,25 @@ class SequenceableServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Load migrations automatically if configured or if in testing
-        if (config('sequenceable.load_migrations', true) || $this->app->runningUnitTests()) {
+        if (config('auto-sequence.load_migrations', true) || $this->app->runningUnitTests()) {
             $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         }
 
         if ($this->app->runningInConsole()) {
             // Allow publishing of the config file
             $this->publishes([
-                __DIR__.'/../config/sequenceable.php' => config_path('sequenceable.php'),
-            ], 'sequenceable-config');
+                __DIR__.'/../config/auto-sequence.php' => config_path('auto-sequence.php'),
+            ], 'auto-sequence-config');
 
             // Allow publishing of database migrations
             $this->publishes([
                 __DIR__.'/../database/migrations' => database_path('migrations'),
-            ], 'sequenceable-migrations');
+            ], 'auto-sequence-migrations');
 
             // Allow publishing of Laravel Boost skills
             $this->publishes([
                 __DIR__.'/../resources/boost/skills' => base_path('.github/skills'),
-            ], 'sequenceable-boost-skills');
+            ], 'auto-sequence-boost-skills');
 
             // Register Artisan commands
             $this->commands([
@@ -75,21 +75,21 @@ class SequenceableServiceProvider extends ServiceProvider
      */
     protected function autoPublishBoostSkills(): void
     {
-        $source = __DIR__.'/../resources/boost/skills/laravel-sequenceable/SKILL.md';
+        $source = __DIR__.'/../resources/boost/skills/laravel-auto-sequence/SKILL.md';
         if (! file_exists($source)) {
             return;
         }
 
         $targets = [];
         if (is_dir(base_path('.github/skills'))) {
-            $targets[] = base_path('.github/skills/laravel-sequenceable/SKILL.md');
+            $targets[] = base_path('.github/skills/laravel-auto-sequence/SKILL.md');
         }
         if (is_dir(base_path('.ai/skills'))) {
-            $targets[] = base_path('.ai/skills/laravel-sequenceable/SKILL.md');
+            $targets[] = base_path('.ai/skills/laravel-auto-sequence/SKILL.md');
         }
 
         if (empty($targets)) {
-            $targets[] = base_path('.github/skills/laravel-sequenceable/SKILL.md');
+            $targets[] = base_path('.github/skills/laravel-auto-sequence/SKILL.md');
         }
 
         foreach ($targets as $destination) {
@@ -104,8 +104,8 @@ class SequenceableServiceProvider extends ServiceProvider
         if (file_exists($boostJsonPath)) {
             $boostJson = json_decode(file_get_contents($boostJsonPath), true);
             if (is_array($boostJson) && isset($boostJson['skills'])) {
-                if (! in_array('laravel-sequenceable', $boostJson['skills'])) {
-                    $boostJson['skills'][] = 'laravel-sequenceable';
+                if (! in_array('laravel-auto-sequence', $boostJson['skills'])) {
+                    $boostJson['skills'][] = 'laravel-auto-sequence';
                     file_put_contents(
                         $boostJsonPath,
                         json_encode($boostJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)

@@ -1,9 +1,9 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Tests;
+namespace MadeByClowd\AutoSequence\Tests;
 
 use Illuminate\Foundation\Application;
-use MadeByClowd\Sequenceable\SequenceableServiceProvider;
+use MadeByClowd\AutoSequence\AutoSequenceServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
 abstract class TestCase extends OrchestraTestCase
@@ -16,7 +16,7 @@ abstract class TestCase extends OrchestraTestCase
     protected function getPackageProviders($app): array
     {
         return [
-            SequenceableServiceProvider::class,
+            AutoSequenceServiceProvider::class,
         ];
     }
 
@@ -35,7 +35,7 @@ abstract class TestCase extends OrchestraTestCase
             'prefix' => '',
         ]);
 
-        // Enable default sequenceable settings
-        $app['config']->set('sequenceable.load_migrations', true);
+        // Enable default auto-sequence settings
+        $app['config']->set('auto-sequence.load_migrations', true);
     }
 }

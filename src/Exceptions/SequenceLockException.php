@@ -1,8 +1,8 @@
 <?php
 
-namespace MadeByClowd\Sequenceable\Exceptions;
+namespace MadeByClowd\AutoSequence\Exceptions;
 
-class SequenceLockException extends SequenceableException
+class SequenceLockException extends AutoSequenceException
 {
     /**
      * Create a new lock exception.

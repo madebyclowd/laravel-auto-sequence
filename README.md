@@ -4,7 +4,19 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
-A concurrency-safe and customizable sequence number generator for Laravel Eloquent models (e.g., Invoices, Orders, CRM records, etc.).
+Generates human-friendly, sequential numbers for your Eloquent models — invoice numbers, order
+numbers, ticket numbers, anything like `INV-2026-06-00001`. Safe to use even when many requests
+try to create a record at the exact same time (no duplicate numbers, no gaps you didn't ask for).
+
+---
+
+## Why not just use the auto-increment `id`?
+
+Your model's `id` (1, 2, 3...) is great for the database, but bad to show a customer: it leaks how
+many records you have, resets differently per environment, and can't encode things like a branch
+code or the year. This package generates a **second**, formatted column (e.g. `number`) alongside
+`id`, specifically for that purpose — and handles concurrency safely so two simultaneous requests
+never get the same number.
 
 ---
 
@@ -12,7 +24,7 @@ A concurrency-safe and customizable sequence number generator for Laravel Eloque
 
 *   **Concurrency Safety**: Utilizes pessimistic database locking (`SELECT ... FOR UPDATE`) or Redis-based distributed locks to prevent duplicate number generation.
 *   **Hi/Lo Pre-Allocation Caching**: Optionally allocates sequence numbers in blocks (e.g., 50 at a time) and increments them in-memory to reduce database lock contention.
-*   **Composite Key Partitioning**: Segregates counters using composite primary keys `['module', 'type_code', 'period', 'scope']`. 
+*   **Composite Key Partitioning**: Segregates counters using composite primary keys `['module', 'type_code', 'period', 'scope']`.
 *   **Period Resets**: Automatically resets counters on date boundaries (daily, weekly, monthly, yearly) or custom fiscal periods.
 *   **Dynamic Rules & Scopes**: Resolves type prefixes from model relations (e.g. `$invoice->branch->code`) and scopes sequences by organizational units (e.g. `$invoice->tenant_id`).
 *   **Flexible Format Placeholders**: Supports template placeholders like date tokens (`{YYYY}`, `{MM}`, `{date:d-M-Y}`), dynamic model attributes (`{attribute:customer_code}`), and random strings (`{rand:8}`).
@@ -20,19 +32,78 @@ A concurrency-safe and customizable sequence number generator for Laravel Eloque
 
 ---
 
-## Installation
+## Requirements
 
-Install the package via Composer:
+- PHP 8.2+
+- Laravel 11, 12, or 13 (`illuminate/support` and `illuminate/database`)
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Basic Usage](#basic-usage)
+- [Format Template Tokens](#format-template-tokens)
+- [Advanced Usage](#advanced-usage)
+- [Manual Generation (Facade)](#manual-generation-facade)
+- [Artisan Commands](#artisan-commands)
+- [Configuration](#configuration-configauto-sequencephp)
+- [Troubleshooting / FAQ](#troubleshooting--faq)
+- [License](#license)
+
+---
+
+## Quick Start
+
+**1. Install the package:**
 
 ```bash
 composer require madebyclowd/laravel-auto-sequence
 ```
 
-Run the interactive installation wizard to publish the configuration file, database migrations, AI developer skills, and run the database migrations:
+**2. Run the setup wizard** — it asks a couple of yes/no questions and creates the database tables
+the package needs (you can just press Enter to accept the sensible defaults):
 
 ```bash
 php artisan sequence:install
 ```
+
+**3. Add a `number` column to the model you want to sequence** (a plain `string` column, nullable
+or with a default of `null`), then wire up the model:
+
+```php
+use MadeByClowd\AutoSequence\Contracts\AutoSequence;
+use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
+use Illuminate\Database\Eloquent\Model;
+
+class Invoice extends Model implements AutoSequence
+{
+    use HasSequenceNumber;
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'number' => [
+                'module' => 'invoice',       // groups this sequence's counter
+                'type_code' => 'INV',        // the prefix in the generated number
+                'period' => 'monthly',       // counter resets every month
+                'format_template' => '{type_code}-{YYYY}-{MM}-{seq:5}',
+            ],
+        ];
+    }
+}
+```
+
+**4. Create a record like normal — the column fills itself in:**
+
+```php
+$invoice = Invoice::create([...]); // no need to set 'number' yourself
+echo $invoice->number; // "INV-2026-06-00001"
+```
+
+That's it — every new `Invoice` now gets a safe, formatted, auto-incrementing number. Read on for
+the full set of options.
 
 ---
 
@@ -40,7 +111,8 @@ php artisan sequence:install
 
 ### 1. Implement and Configure Your Model
 
-Add the `AutoSequence` contract and use the `HasSequenceNumber` trait on your Eloquent model:
+Add the `AutoSequence` contract and use the `HasSequenceNumber` trait on your Eloquent model, then
+return one array entry per column you want to auto-fill from `getSequenceConfig()`:
 
 ```php
 use MadeByClowd\AutoSequence\Contracts\AutoSequence;
@@ -69,6 +141,10 @@ class Invoice extends Model implements AutoSequence
 }
 ```
 
+Only `module` and `format_template` are required — everything else falls back to a sensible
+default (see [Configuration](#configuration-configauto-sequencephp) and
+[Additional Configuration Options](#7-additional-configuration-options)).
+
 ### 2. Manual Override Protection
 If you manually assign a value to the sequenced attribute before saving, the package will respect it and skip generation:
 
@@ -77,6 +153,24 @@ $invoice = new Invoice();
 $invoice->number = 'MANUAL-999';
 $invoice->save(); // Bypasses sequence generator, keeping 'MANUAL-999'
 ```
+
+---
+
+## Format Template Tokens
+
+`format_template` is a plain string with placeholders. Mix and match any of these:
+
+| Token | Produces | Example |
+|---|---|---|
+| `{type_code}` | The resolved type code/prefix | `INV` |
+| `{seq:N}` | The incrementing counter, zero-padded to `N` digits | `{seq:5}` → `00042` |
+| `{YYYY}` / `{MM}` / `{DD}` | Current year / month / day | `2026`, `06`, `16` |
+| `{date:FORMAT}` | Any [PHP date format](https://www.php.net/manual/en/datetime.format.php) | `{date:d-M-Y}` → `16-Jun-2026` |
+| `{period}` | The raw value returned by a custom `period` callable | `FY2026` |
+| `{attribute:column}` | A live attribute from the model being saved (dot-notation for relations) | `{attribute:branch.company.code}` |
+| `{rand:N}` | A random alphanumeric string of length `N` | `{rand:8}` → `aZ3kQ9pL` |
+
+Example combining several: `'{type_code}-{YYYY}-{attribute:branch.code}-{seq:5}'`.
 
 ---
 
@@ -317,6 +411,40 @@ return [
     ],
 ];
 ```
+
+You don't have to publish this file at all — every key above has a working default, so skip it
+unless you actually need to change something.
+
+---
+
+## Troubleshooting / FAQ
+
+**My column stays `null` after `Model::create()`.**
+Make sure the model `implements AutoSequence` (not just uses the trait) and that you didn't
+manually set the column to a non-empty value before saving — see
+[Manual Override Protection](#2-manual-override-protection).
+
+**I get a lock/timeout error under load.**
+You're likely on the `'cache'` locking driver with a store that doesn't support atomic locks.
+`file` and `array` cache drivers don't support concurrent locks properly — switch to `redis`,
+`memcached`, or the `'database'` driver (see `locking.driver` in
+[Configuration](#configuration-configauto-sequencephp)).
+
+**I enabled `pre_allocation` and got a configuration exception.**
+Pre-allocation requires `transaction_mode => 'gap_tolerant'` — it's incompatible with the default
+`'gapless'` mode. See [Pre-Allocation & Transaction Modes](#8-soft-deletes--concurrency-best-practices).
+
+**A restored (soft-deleted) record didn't get its number recycled — is that a bug?**
+No — that's intentional. Numbers are only recycled on `forceDelete()`, never on a soft delete, so a
+later `restore()` can't collide with a number already handed out in the meantime.
+
+**How do I fix a counter that's out of sync with my actual data?**
+Run `php artisan sequence:verify {model} {column} --repair` — see
+[Verify and Repair](#verify-and-repair).
+
+**Can I use this with UUID/ULID primary keys?**
+Yes — the sequence counter lives in its own table (`sequences`), keyed by
+`module`/`type_code`/`period`/`scope`, completely independent of your model's primary key type.
 
 ---
 

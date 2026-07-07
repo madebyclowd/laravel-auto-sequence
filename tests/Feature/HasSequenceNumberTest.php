@@ -2,20 +2,16 @@
 
 namespace MadeByClowd\AutoSequence\Tests\Feature;
 
-use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use MadeByClowd\AutoSequence\Contracts\Sequenceable;
 use MadeByClowd\AutoSequence\Exceptions\AutoSequenceException;
 use MadeByClowd\AutoSequence\Facades\Sequence;
 use MadeByClowd\AutoSequence\Tests\TestCase;
 use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\NullOutput;
 
 class HasSequenceNumberTest extends TestCase
 {
@@ -243,51 +239,6 @@ class HasSequenceNumberTest extends TestCase
 
         // Database value should now be 2
         $this->assertEquals(2, Sequence::getCurrent('invoice', 'INV', $currentPeriod));
-    }
-
-    /** @test */
-    public function test_it_automatically_publishes_boost_skills_when_boost_commands_run()
-    {
-        $targetSkillPath = base_path('.github/skills/laravel-auto-sequence/SKILL.md');
-        $boostJsonPath = base_path('boost.json');
-
-        if (file_exists($targetSkillPath)) {
-            unlink($targetSkillPath);
-        }
-        if (file_exists($boostJsonPath)) {
-            unlink($boostJsonPath);
-        }
-
-        file_put_contents($boostJsonPath, json_encode([
-            'skills' => ['laravel-best-practices'],
-        ]));
-
-        $this->assertFileDoesNotExist($targetSkillPath);
-
-        Event::dispatch(
-            new CommandFinished(
-                'boost:install',
-                new ArrayInput([]),
-                new NullOutput,
-                0
-            )
-        );
-
-        $this->assertFileExists($targetSkillPath);
-
-        $boostJson = json_decode(file_get_contents($boostJsonPath), true);
-        $this->assertContains('laravel-auto-sequence', $boostJson['skills']);
-
-        // Cleanup
-        if (file_exists($targetSkillPath)) {
-            unlink($targetSkillPath);
-            if (is_dir(dirname($targetSkillPath))) {
-                rmdir(dirname($targetSkillPath));
-            }
-        }
-        if (file_exists($boostJsonPath)) {
-            unlink($boostJsonPath);
-        }
     }
 
     /** @test */

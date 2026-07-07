@@ -12,17 +12,19 @@ metadata:
 
 ### Installation and Setup
 
-Run the setup wizard to publish configurations, publish database migrations, publish AI agent skills, and run migrations:
+Run the setup wizard to publish the config, publish database migrations, and run migrations:
 ```bash
 php artisan sequence:install
 ```
 
-To manually republish assets or Laravel Boost skills:
+To manually republish individual assets:
 ```bash
 php artisan vendor:publish --tag=auto-sequence-config
 php artisan vendor:publish --tag=auto-sequence-migrations
-php artisan vendor:publish --tag=auto-sequence-boost-skills
 ```
+
+This skill and the accompanying guideline are auto-discovered by Laravel Boost directly from
+`resources/boost/` in the package — no publish step or manual registration needed.
 
 ### Basic Usage
 

@@ -4,19 +4,20 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
-Generates human-friendly, sequential numbers for your Eloquent models — invoice numbers, order
-numbers, ticket numbers, anything like `INV-2026-06-00001`. Safe to use even when many requests
-try to create a record at the exact same time (no duplicate numbers, no gaps you didn't ask for).
+Automatically generate custom, sequential numbers (like `INV-2026-0001`, `ORD-999`, etc.) for your Laravel models.
+
+It is completely automatic and guarantees **zero duplicate numbers** and **no accidental gaps**, even when thousands of users are placing orders or creating invoices at the exact same millisecond.
 
 ---
 
-## Why not just use the auto-increment `id`?
+## Why not just use the normal auto-increment `id`?
 
-Your model's `id` (1, 2, 3...) is great for the database, but bad to show a customer: it leaks how
-many records you have, resets differently per environment, and can't encode things like a branch
-code or the year. This package generates a **second**, formatted column (e.g. `number`) alongside
-`id`, specifically for that purpose — and handles concurrency safely so two simultaneous requests
-never get the same number.
+Using a model's default database `id` (1, 2, 3...) is fine for relationships, but a bad idea to show to your users because:
+1. **It leaks data**: Your customers will know exactly how many invoices or orders you have processed.
+2. **It is unpredictable**: It might start at 1 in your local testing database but start at 14,000 on production.
+3. **It is boring**: You can't customize it to include the current year, a department code, or dynamic prefixes (e.g., you can't easily turn `id = 5` into `INV-2026-NY-0005`).
+
+This package solves this by generating a separate, beautifully formatted number column for you (like `invoice_number`), while ensuring two simultaneous database queries never try to claim the exact same number.
 
 ---
 

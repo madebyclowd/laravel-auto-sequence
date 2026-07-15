@@ -1,6 +1,6 @@
 {
     "name": "madebyclowd/laravel-auto-sequence",
-    "description": "A concurrency-safe and customizable sequence number generator for Laravel Eloquent models, with support for database/Redis locking and soft deletes.",
+    "description": "Automatically generate sequential invoice/order numbers (like INV-2026-0001) for Laravel Eloquent models. Safe from duplicates even under heavy concurrent traffic.",
     "license": "MIT",
     "keywords": [
         "laravel",

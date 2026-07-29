@@ -2,6 +2,9 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
 [![Total Downloads](https://img.shields.io/packagist/dt/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
+[![run-tests](https://img.shields.io/github/actions/workflow/status/madebyclowd/laravel-auto-sequence/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/madebyclowd/laravel-auto-sequence/actions/workflows/run-tests.yml)
+[![security](https://img.shields.io/github/actions/workflow/status/madebyclowd/laravel-auto-sequence/security.yml?branch=main&label=security&style=flat-square)](https://github.com/madebyclowd/laravel-auto-sequence/actions/workflows/security.yml)
+[![codecov](https://img.shields.io/codecov/c/github/madebyclowd/laravel-auto-sequence?style=flat-square)](https://codecov.io/gh/madebyclowd/laravel-auto-sequence)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
 Automatically generate custom, sequential numbers (like `INV-2026-0001`, `ORD-999`, etc.) for your Laravel models.

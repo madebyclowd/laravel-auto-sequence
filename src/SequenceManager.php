@@ -4,6 +4,7 @@ namespace MadeByClowd\AutoSequence;
 
 use Closure;
 use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -196,10 +197,11 @@ class SequenceManager
             ->first();
 
         if ($sequence) {
-            $sequence->update(array_merge($attributes, $auditEnabled && $userId ? [$updatedByColumn => $userId] : []));
+            $sequence->forceFill(array_merge($attributes, $auditEnabled && $userId ? [$updatedByColumn => $userId] : []))->save();
         } else {
             $attributes = array_merge($matchThese, $attributes, $auditEnabled && $userId ? [$createdByColumn => $userId, $updatedByColumn => $userId] : []);
-            $sequence = new Sequence($attributes);
+            $sequence = new Sequence;
+            $sequence->forceFill($attributes);
             $sequence->setConnection($connectionName);
             $sequence->save();
         }
@@ -234,7 +236,9 @@ class SequenceManager
             $lock = $store->lock($lockKey, $timeoutSeconds);
 
             try {
-                if (! $lock->block($timeoutSeconds)) {
+                try {
+                    $lock->block($timeoutSeconds);
+                } catch (LockTimeoutException) {
                     throw SequenceLockException::lockAcquisitionFailed("{$module}:{$typeCode}", $timeoutSeconds);
                 }
 
@@ -304,7 +308,9 @@ class SequenceManager
         $lock = $store->lock($lockKey, $timeoutSeconds);
 
         try {
-            if (! $lock->block($timeoutSeconds)) {
+            try {
+                $lock->block($timeoutSeconds);
+            } catch (LockTimeoutException) {
                 throw SequenceLockException::lockAcquisitionFailed("{$module}:{$typeCode} (pre-allocation)", $timeoutSeconds);
             }
 
@@ -387,7 +393,8 @@ class SequenceManager
                 $attributes[$updatedByColumn] = $userId;
             }
 
-            $sequence = new Sequence($attributes);
+            $sequence = new Sequence;
+            $sequence->forceFill($attributes);
             $sequence->setConnection($connectionName);
             $sequence->save();
         } else {

@@ -47,7 +47,11 @@
     "autoload-dev": {
         "psr-4": {
             "MadeByClowd\\AutoSequence\\Tests\\": "tests/"
-        }
+        },
+        "files": [
+            "tests/Feature/Fixtures/SequenceModels.php",
+            "tests/Feature/Fixtures/NonLockingCacheStore.php"
+        ]
     },
     "extra": {
         "laravel": {

@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and thi
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-29
+
+### Fixed
+- Audit trail (`created_by`/`updated_by`) was silently never persisted — `Models\Sequence::$fillable` didn't include the audit columns, so mass-assignment (`new Sequence($attributes)`, `->update()`) dropped them with no error. Now uses `forceFill()`.
+- Lock-acquisition timeouts leaked Laravel's internal `Illuminate\Contracts\Cache\LockTimeoutException` instead of the package's own `SequenceLockException` — `Lock::block()` throws rather than returning `false`, so the old `if (! $lock->block(...))` check was dead code. Both the database-lock and pre-allocation lock paths now catch and rethrow correctly.
+
+### Added
+- Test coverage for all console commands (`sequence:install`, `sequence:reset`, `sequence:list`, `sequence:verify`), including error/validation branches.
+- Test coverage for the audit trail, cache-based locking, and previously-untested template placeholders (`{module}`, `{scope}`, `{rand:X}`, missing-attribute fallback).
+
+### Changed
+- Reorganized the test suite from a single 740-line file into focused files under `tests/Feature/Console/` and `tests/Feature/Sequencing/`, with shared fixtures under `tests/Feature/Fixtures/`.
+
 ## [1.1.0](https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.0.3...v1.1.0) (2026-07-29)
 
 
@@ -36,7 +49,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and thi
 ### Added
 - Initial release: sequential invoice/order number generation for Laravel Eloquent models, safe under concurrent writes via pessimistic/Redis locking.
 
-[Unreleased]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.1.0...v1.1.1
 [1.0.3]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.0.0...v1.0.1

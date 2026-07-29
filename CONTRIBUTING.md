@@ -26,7 +26,7 @@ All three run in CI on every push and pull request; a PR won't be merged unless 
 - Add or update tests for any behavior change.
 - Run `vendor/bin/pint` (without `--test`) to auto-fix style before committing.
 - Keep PRs focused — one logical change per PR.
-- Update `CHANGELOG.md` under `## [Unreleased]`.
+- Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (`feat:`, `fix:`, `chore:`, etc.) — `CHANGELOG.md` and version bumps are generated automatically from these by release-please, don't edit `CHANGELOG.md` by hand.
 
 ## Reporting bugs
 

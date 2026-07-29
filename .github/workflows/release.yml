@@ -1,19 +1,20 @@
-name: create-release
+name: attach-release-assets
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [published]
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  sbom:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -30,10 +31,8 @@ jobs:
           composer require --dev cyclonedx/cyclonedx-php-composer --no-interaction --with-all-dependencies
           composer CycloneDX:make-sbom --output-format=JSON --output-file=bom.json --omit=dev
 
-      - name: Create Release
+      - name: Attach SBOM to release
         uses: softprops/action-gh-release@v3
         with:
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+          tag_name: ${{ github.event.release.tag_name }}
           files: bom.json

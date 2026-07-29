@@ -8,4 +8,4 @@
 - [ ] `vendor/bin/pint --test` passes
 - [ ] `vendor/bin/phpstan analyse` passes
 - [ ] `vendor/bin/phpunit` passes
-- [ ] `CHANGELOG.md` updated under `## [Unreleased]`
+- [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, ...)

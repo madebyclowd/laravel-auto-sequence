@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and thi
 New entries are generated from `.changes/*.md` changesets — see
 [.changes/README.md](.changes/README.md) — not edited here by hand.
 
+## [1.2.0] - 2026-08-03
+
+### Added
+- Releases are now automated: contributors add a small changeset file under
+  `.changes/` describing their change, and a GitHub Actions workflow
+  aggregates pending changesets into a `CHANGELOG.md` update and opens a
+  Version PR. Merging that PR tags and releases automatically — no more
+  manual `git tag` push. See [.changes/README.md](.changes/README.md).
+
 ## [1.1.1] - 2026-07-29
 
 ### Fixed
@@ -55,3 +64,5 @@ New entries are generated from `.changes/*.md` changesets — see
 [1.0.2]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/madebyclowd/laravel-auto-sequence/releases/tag/v1.0.0
+
+[1.2.0]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.1.2...v1.2.0

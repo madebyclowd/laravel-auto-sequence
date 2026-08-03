@@ -8,4 +8,4 @@
 - [ ] `vendor/bin/pint --test` passes
 - [ ] `vendor/bin/phpstan analyse` passes
 - [ ] `vendor/bin/phpunit` passes
-- [ ] `CHANGELOG.md` updated under `## [Unreleased]`
+- [ ] Changeset added under `.changes/` (see `.changes/README.md`) if this is a user-facing change

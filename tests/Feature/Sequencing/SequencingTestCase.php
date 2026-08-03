@@ -85,5 +85,55 @@ abstract class SequencingTestCase extends TestCase
             $table->string('seq_continuous_max')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('test_shorthand_invoices', function ($table) {
+            $table->id();
+            $table->string('number')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('test_plain_trait_invoices', function ($table) {
+            $table->id();
+            $table->string('number')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('test_relation_array_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_relation_array')->nullable();
+            $table->foreignId('branch_id')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('test_default_type_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_default_type')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('test_custom_period_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_custom_period')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('test_period_variant_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_daily')->nullable();
+            $table->string('seq_weekly')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('test_scope_closure_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_scope_closure')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('test_scope_class_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_scope_class')->nullable();
+            $table->timestamps();
+        });
     }
 }

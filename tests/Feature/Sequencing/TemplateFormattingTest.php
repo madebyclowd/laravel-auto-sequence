@@ -103,4 +103,22 @@ class TemplateFormattingTest extends SequencingTestCase
 
         $this->assertEquals('AM--01', $formatted);
     }
+
+    /** @test */
+    public function test_it_falls_back_to_type_period_number_when_no_template_is_given()
+    {
+        $formatted = Sequence::generate('no_template', 'NT', '202601', null, 3);
+
+        $this->assertEquals('NT-202601-001', $formatted);
+    }
+
+    /** @test */
+    public function test_it_updates_the_stored_template_when_a_different_one_is_passed_on_a_later_call()
+    {
+        $first = Sequence::generate('tpl_update', 'TU', 'global', 'TU-A-{seq:2}', 2);
+        $this->assertEquals('TU-A-01', $first);
+
+        $second = Sequence::generate('tpl_update', 'TU', 'global', 'TU-B-{seq:2}', 2);
+        $this->assertEquals('TU-B-02', $second);
+    }
 }

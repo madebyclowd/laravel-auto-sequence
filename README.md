@@ -4,6 +4,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/madebyclowd/laravel-auto-sequence.svg?style=flat-square)](https://packagist.org/packages/madebyclowd/laravel-auto-sequence)
 [![run-tests](https://img.shields.io/github/actions/workflow/status/madebyclowd/laravel-auto-sequence/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/madebyclowd/laravel-auto-sequence/actions/workflows/run-tests.yml)
 [![security](https://img.shields.io/github/actions/workflow/status/madebyclowd/laravel-auto-sequence/security.yml?branch=main&label=security&style=flat-square)](https://github.com/madebyclowd/laravel-auto-sequence/actions/workflows/security.yml)
+[![codecov](https://img.shields.io/codecov/c/github/madebyclowd/laravel-auto-sequence?style=flat-square)](https://codecov.io/gh/madebyclowd/laravel-auto-sequence)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
 Automatically generate custom, sequential numbers (like `INV-2026-0001`, `ORD-999`, etc.) for your Laravel models.
@@ -25,13 +26,13 @@ This package solves this by generating a separate, beautifully formatted number 
 
 ## Features
 
-*   **Concurrency Safety**: Utilizes pessimistic database locking (`SELECT ... FOR UPDATE`) or Redis-based distributed locks to prevent duplicate number generation.
-*   **Hi/Lo Pre-Allocation Caching**: Optionally allocates sequence numbers in blocks (e.g., 50 at a time) and increments them in-memory to reduce database lock contention.
-*   **Composite Key Partitioning**: Segregates counters using composite primary keys `['module', 'type_code', 'period', 'scope']`.
-*   **Period Resets**: Automatically resets counters on date boundaries (daily, weekly, monthly, yearly) or custom fiscal periods.
-*   **Dynamic Rules & Scopes**: Resolves type prefixes from model relations (e.g. `$invoice->branch->code`) and scopes sequences by organizational units (e.g. `$invoice->tenant_id`).
-*   **Flexible Format Placeholders**: Supports template placeholders like date tokens (`{YYYY}`, `{MM}`, `{date:d-M-Y}`), dynamic model attributes (`{attribute:customer_code}`), and random strings (`{rand:8}`).
-*   **Verification & Repair Commands**: Includes Artisan commands to audit model records, detect counter drift, and repair sequence state.
+*   **No duplicate numbers, ever.** If 1,000 people click "checkout" at the exact same second, everyone still gets their own unique number. The package locks the counter (using the database, or Redis) so two people can never grab the same number by accident.
+*   **Fewer database trips (optional).** It can hand out numbers in batches of 50 (or any amount you choose) and give them out from memory instead of asking the database every single time. This is called "Hi/Lo Pre-Allocation" — think of it like a cashier grabbing a roll of 50 raffle tickets instead of walking to the back room for every single customer.
+*   **Separate counters for separate things.** Invoices, orders, and each branch/store/tenant can all have their own independent counter, so "Invoice #1" and "Order #1" don't collide, and Jakarta branch numbers don't mix with Bali branch numbers.
+*   **Counters that reset automatically.** Want your numbers to start back at `0001` every month, every year, or on your own custom schedule (like a fiscal year)? Just tell it the rule and it resets itself — no cron job needed.
+*   **Smart prefixes that change per record.** The prefix (like `INV` or `JKT`) can be pulled automatically from related data — e.g. use the customer's branch code as the prefix, or scope the whole counter to a specific tenant/company — instead of hardcoding it.
+*   **Build the number however you want.** Mix and match building blocks in a simple template, like `{YYYY}` for the year, `{MM}` for the month, `{seq:5}` for a 5-digit counter, or even a random code — and the package assembles the final number for you.
+*   **A command to fix a broken counter.** Say someone manually edits an invoice number in the database, or you import old records straight into the table (bypassing the package) — the counter can end up out of sync with what's actually in your data, risking a duplicate next time. Run `php artisan sequence:verify` to check for that; add `--repair` and it corrects the counter for you. No manual SQL needed.
 
 ---
 

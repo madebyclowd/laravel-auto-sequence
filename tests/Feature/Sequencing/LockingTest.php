@@ -4,6 +4,7 @@ namespace MadeByClowd\AutoSequence\Tests\Feature\Sequencing;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use MadeByClowd\AutoSequence\Exceptions\AutoSequenceException;
 use MadeByClowd\AutoSequence\Exceptions\SequenceLockException;
 use MadeByClowd\AutoSequence\Facades\Sequence;
@@ -77,5 +78,19 @@ class LockingTest extends SequencingTestCase
         $this->expectException(SequenceLockException::class);
 
         Sequence::generate('lock_test', 'LK', '202601', 'LK-{seq:2}', 2, 'own-scope');
+    }
+
+    /** @test */
+    public function test_database_locking_wraps_unexpected_transaction_errors_in_a_sequence_lock_exception()
+    {
+        config(['auto-sequence.locking.driver' => 'database']);
+
+        // Any error inside the locked transaction (not just a lock timeout)
+        // should be caught and rethrown as a SequenceLockException.
+        Schema::drop(config('auto-sequence.table', 'sequences'));
+
+        $this->expectException(SequenceLockException::class);
+
+        Sequence::generate('db_error_test', 'DE', '202601', 'DE-{seq:2}', 2);
     }
 }

@@ -27,8 +27,8 @@ class AutoSequenceServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Load migrations automatically if configured or if in testing
-        if (config('auto-sequence.load_migrations', true) || $this->app->runningUnitTests()) {
+        // Load migrations automatically if configured
+        if (config('auto-sequence.load_migrations', true)) {
             $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         }
 

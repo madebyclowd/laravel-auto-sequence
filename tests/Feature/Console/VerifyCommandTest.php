@@ -2,6 +2,7 @@
 
 namespace MadeByClowd\AutoSequence\Tests\Feature\Console;
 
+use MadeByClowd\AutoSequence\Facades\Sequence;
 use MadeByClowd\AutoSequence\Tests\Feature\Fixtures\TestBranch;
 use MadeByClowd\AutoSequence\Tests\Feature\Fixtures\TestInvoice;
 
@@ -111,6 +112,26 @@ class VerifyCommandTest extends ConsoleTestCase
             ->expectsOutputToContain('Highest sequence number found in model records: 1')
             ->expectsOutputToContain('Drift detected!')
             ->assertExitCode(0);
+    }
+
+    /** @test */
+    public function test_repair_option_aligns_the_database_counter_to_the_highest_found_number()
+    {
+        TestInvoice::create();
+        $currentPeriod = now()->format('Ym');
+
+        $this->artisan('sequence:verify', [
+            'model' => TestInvoice::class,
+            'column' => 'number',
+            '--type' => '',
+            '--module' => 'invoice',
+            '--repair' => true,
+        ])
+            ->expectsOutputToContain('Drift detected!')
+            ->expectsOutputToContain('Successfully repaired database sequence counter to 1.')
+            ->assertExitCode(0);
+
+        $this->assertEquals(1, Sequence::getCurrent('invoice', '', $currentPeriod, 'default'));
     }
 }
 

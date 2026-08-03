@@ -262,3 +262,209 @@ class TestContinuousMaxInvoice extends Model implements Sequenceable
         ];
     }
 }
+
+/**
+ * Uses the flat/shorthand config format (a single config array, not
+ * keyed by column name) and is also continuous, to exercise the
+ * normalization branch in both the `creating` and `deleted` listeners.
+ */
+class TestShorthandInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['number'];
+
+    protected $table = 'test_shorthand_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'module' => 'shorthand',
+            'type_code' => 'SH',
+            'continuous' => true,
+            'period' => 'never',
+            'format_template' => 'SH-{seq:3}',
+        ];
+    }
+}
+
+/**
+ * Uses the HasSequenceNumber trait without implementing the Sequenceable
+ * contract, to exercise the trait's early-return guard clauses.
+ */
+class TestPlainTraitInvoice extends Model
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['number'];
+
+    protected $table = 'test_plain_trait_invoices';
+}
+
+class TestRelationArrayInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['seq_relation_array', 'branch_id'];
+
+    protected $table = 'test_relation_array_invoices';
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(TestBranch::class);
+    }
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_relation_array' => [
+                'module' => 'adv_relation_array',
+                'type_relation' => [
+                    'relation' => 'branch',
+                    'column' => 'code',
+                ],
+                'default_type' => 'HQ',
+                'period' => 'never',
+                'format_template' => '{type_code}-{seq:3}',
+            ],
+        ];
+    }
+}
+
+class TestDefaultTypeInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['seq_default_type'];
+
+    protected $table = 'test_default_type_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_default_type' => [
+                'module' => 'adv_default_type',
+                'period' => 'never',
+                'format_template' => '{type_code}-{seq:3}',
+            ],
+        ];
+    }
+}
+
+/**
+ * Resolves the partition period via a custom resolver class string
+ * (`app($class)->resolve($model)`), instead of a built-in keyword or closure.
+ */
+class FiscalPeriodResolver
+{
+    public function resolve(Model $model): string
+    {
+        return 'FY'.($model->created_at?->year ?? now()->year);
+    }
+}
+
+class TestCustomPeriodInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['seq_custom_period'];
+
+    protected $table = 'test_custom_period_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_custom_period' => [
+                'module' => 'adv_custom_period',
+                'type_code' => 'CP',
+                'period' => FiscalPeriodResolver::class,
+                'format_template' => '{type_code}-{period}-{seq:3}',
+            ],
+        ];
+    }
+}
+
+class TestPeriodVariantInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['seq_daily', 'seq_weekly'];
+
+    protected $table = 'test_period_variant_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_daily' => [
+                'module' => 'adv_daily',
+                'type_code' => 'DL',
+                'period' => 'daily',
+                'format_template' => '{type_code}-{period}-{seq:3}',
+            ],
+            'seq_weekly' => [
+                'module' => 'adv_weekly',
+                'type_code' => 'WK',
+                'period' => 'weekly',
+                'format_template' => '{type_code}-{period}-{seq:3}',
+            ],
+        ];
+    }
+}
+
+class TestScopeClosureInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['seq_scope_closure'];
+
+    protected $table = 'test_scope_closure_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_scope_closure' => [
+                'module' => 'adv_scope_closure',
+                'type_code' => 'SC',
+                'period' => 'never',
+                'scope' => function ($model) {
+                    return 'closure-scope';
+                },
+                'format_template' => '{type_code}-{seq:3}',
+            ],
+        ];
+    }
+}
+
+/**
+ * Resolves the scope partition via a custom resolver class string
+ * (`app($class)->resolve($model)`), instead of a built-in attribute name.
+ */
+class RegionScopeResolver
+{
+    public function resolve(Model $model): string
+    {
+        return 'region-resolved';
+    }
+}
+
+class TestScopeClassInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['seq_scope_class'];
+
+    protected $table = 'test_scope_class_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_scope_class' => [
+                'module' => 'adv_scope_class',
+                'type_code' => 'RS',
+                'period' => 'never',
+                'scope' => RegionScopeResolver::class,
+                'format_template' => '{type_code}-{seq:3}',
+            ],
+        ];
+    }
+}

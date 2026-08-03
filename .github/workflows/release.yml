@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - 'v*'
+  # A tag pushed by a workflow using the default GITHUB_TOKEN (as
+  # version.yml's tag-release job does) does not trigger the `push: tags:`
+  # event above — GitHub suppresses it to prevent recursive workflow runs.
+  # version.yml explicitly dispatches this instead via `gh workflow run`.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.2.0)'
+        required: true
 
 permissions:
   contents: write
@@ -14,6 +23,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -33,6 +44,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -10,6 +10,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   version-pr:
@@ -100,3 +101,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "$TAG"
           git push origin "$TAG"
+
+          # A tag pushed with GITHUB_TOKEN doesn't trigger release.yml's
+          # `push: tags:` event (GitHub suppresses it to avoid recursive
+          # workflow runs) — dispatch it explicitly instead.
+          gh workflow run release.yml -f "tag=$TAG"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

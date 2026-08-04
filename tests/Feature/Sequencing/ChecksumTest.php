@@ -71,6 +71,13 @@ class ChecksumTest extends SequencingTestCase
     }
 
     /** @test */
+    public function test_is_valid_checksum_returns_false_for_a_string_with_no_or_too_few_digits()
+    {
+        $this->assertFalse(Sequence::isValidChecksum('NO-DIGITS-HERE'));
+        $this->assertFalse(Sequence::isValidChecksum('X7'));
+    }
+
+    /** @test */
     public function test_checksum_token_combines_correctly_with_a_preceding_rand_token()
     {
         $formatted = Sequence::generate(

@@ -39,7 +39,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property MadeByClowd\\AutoSequence\\Models\\Sequence\:\:\$current_number\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 4
+			path: src/SequenceManager.php
+
+		-
+			message: '#^Access to an undefined property MadeByClowd\\AutoSequence\\Models\\Sequence\:\:\$exhausted_notified_at\.$#'
+			identifier: property.notFound
+			count: 1
 			path: src/SequenceManager.php
 
 		-

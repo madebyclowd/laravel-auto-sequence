@@ -97,6 +97,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Exhaustion Threshold
+    |--------------------------------------------------------------------------
+    |
+    | Percentage of a sequence's 'max_value' at which the SequenceExhausted
+    | event fires, giving you an early warning before the hard limit is hit.
+    | Only applies to sequences that set 'max_value'. Fires once per sequence
+    | partition (not once per generate() call) until Sequence::reset() or
+    | sequence:reset clears it. Overridable per-sequence via the
+    | 'exhaustion_threshold' key in getSequenceConfig().
+    |
+    */
+    'exhaustion_threshold' => 90,
+
+    /*
+    |--------------------------------------------------------------------------
     | Audit Tracking
     |--------------------------------------------------------------------------
     |

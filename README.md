@@ -33,6 +33,7 @@ This package solves this by generating a separate, beautifully formatted number 
 *   **Smart prefixes that change per record.** The prefix (like `INV` or `JKT`) can be pulled automatically from related data — e.g. use the customer's branch code as the prefix, or scope the whole counter to a specific tenant/company — instead of hardcoding it.
 *   **Build the number however you want.** Mix and match building blocks in a simple template, like `{YYYY}` for the year, `{MM}` for the month, `{seq:5}` for a 5-digit counter, or even a random code — and the package assembles the final number for you.
 *   **A command to fix a broken counter.** Say someone manually edits an invoice number in the database, or you import old records straight into the table (bypassing the package) — the counter can end up out of sync with what's actually in your data, risking a duplicate next time. Run `php artisan sequence:verify` to check for that; add `--repair` and it corrects the counter for you. No manual SQL needed.
+*   **Events for every important moment.** Hook into `SequenceGenerated`, `SequenceExhausted` (an early warning before a `max_value` limit is hit), `SequenceRecycled`, and `SequenceResetPerformed` to send notifications, log to an audit system, or trigger any other side effect — no need to touch the package's internals.
 
 ---
 
@@ -312,6 +313,39 @@ To ensure data integrity and prevent service disruption in high-volume productio
 *   **Preventing PHP-FPM Thread Exhaustion**: Under the `database` locking driver, the package automatically sets session-level or local transaction-level lock wait timeouts on the database connection (using MySQL's `innodb_lock_wait_timeout`, Postgres's `lock_timeout`, SQL Server's `LOCK_TIMEOUT`, or SQLite's `busy_timeout`). If a transaction holds a sequence lock for too long, subsequent requests fail fast with a `SequenceLockException` after the configured timeout (default 5s) instead of blocking indefinitely, preventing worker exhaustion and gateway 502/504 errors.
 *   **Pre-Allocation & Transaction Modes**: High-performance pre-allocation (`pre_allocation.enabled => true`) cannot be used together with the `'gapless'` transaction mode. In `'gapless'` mode, a rolled-back transaction would roll back the database counter but keep the pre-allocated block in memory/cache, resulting in duplicate sequence collisions. To use pre-allocation, set `transaction_mode => 'gap_tolerant'`.
 
+### 9. Events
+
+The package fires four Laravel events you can listen for in your app's `EventServiceProvider` (or with `Event::listen(...)`):
+
+| Event | Fired when | Key properties |
+|---|---|---|
+| `SequenceGenerated` | Every time a number is successfully generated (including recycled numbers). | `module`, `typeCode`, `period`, `scope`, `number`, `model` |
+| `SequenceExhausted` | The counter crosses a percentage of `max_value` (default 90%, see below). Fires once per sequence partition — not on every subsequent call — until the counter is reset. | `module`, `typeCode`, `period`, `scope`, `currentNumber`, `maxValue`, `model` |
+| `SequenceRecycled` | A number is actually inserted into the recycle pool (`forceDelete()` on a `continuous` model, or a manual `Sequence::recycle()` call). | `module`, `typeCode`, `period`, `scope`, `number` |
+| `SequenceResetPerformed` | `Sequence::reset()` runs, whether called directly or via `php artisan sequence:reset`. | `module`, `typeCode`, `period`, `scope`, `resetTo` |
+
+```php
+use MadeByClowd\AutoSequence\Events\SequenceExhausted;
+use Illuminate\Support\Facades\Event;
+
+Event::listen(function (SequenceExhausted $event) {
+    Notification::route('slack', config('services.slack.ops_webhook'))
+        ->notify(new SequenceRunningLowNotification($event->module, $event->currentNumber, $event->maxValue));
+});
+```
+
+`SequenceExhausted`'s threshold is a percentage of `max_value`, configurable globally via `exhaustion_threshold` in `config/auto-sequence.php` (default `90`), or overridden per-sequence:
+
+```php
+'number' => [
+    'module' => 'invoice',
+    'type_code' => 'INV',
+    'max_value' => 99999,
+    'exhaustion_threshold' => 95, // warn at 95% instead of the global default
+    'format_template' => '{type_code}-{seq:5}',
+]
+```
+
 ---
 
 ## Manual Generation (Facade)
@@ -334,7 +368,8 @@ $number = Sequence::generate(
     1,          // $startValue (optional, default 1)
     1,          // $step (optional, default 1)
     false,      // $continuous (optional, default false)
-    99999       // $maxValue (optional, default null)
+    99999,      // $maxValue (optional, default null)
+    95          // $exhaustionThreshold (optional, default: config('auto-sequence.exhaustion_threshold'))
 );
 
 // Recycle a sequence number manually (inserts it back into sequence_recycled table)
@@ -404,6 +439,9 @@ return [
         'block_size' => 50, // Grab 50 numbers at a time
         'store' => null,    // dedicated cache store name (e.g. 'redis') to prevent gaps from LRU eviction/flushes
     ],
+
+    // Percentage of 'max_value' at which the SequenceExhausted event fires (see Events below)
+    'exhaustion_threshold' => 90,
 
     // Audit Tracking
     'audit' => [

@@ -125,6 +125,29 @@ class TestMaxInvoice extends Model implements Sequenceable
     }
 }
 
+class TestExhaustionInvoice extends Model implements Sequenceable
+{
+    use HasSequenceNumber;
+
+    protected $fillable = ['seq_exhaustion'];
+
+    protected $table = 'test_exhaustion_invoices';
+
+    public function getSequenceConfig(): array
+    {
+        return [
+            'seq_exhaustion' => [
+                'module' => 'adv_exhaustion',
+                'type_code' => 'EX',
+                'max_value' => 10,
+                'exhaustion_threshold' => 50,
+                'period' => 'never',
+                'format_template' => 'EX-{seq}',
+            ],
+        ];
+    }
+}
+
 class TestNoManualInvoice extends Model implements Sequenceable
 {
     use HasSequenceNumber;

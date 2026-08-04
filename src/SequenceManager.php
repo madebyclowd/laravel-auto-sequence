@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use MadeByClowd\AutoSequence\Events\SequenceExhausted;
+use MadeByClowd\AutoSequence\Events\SequenceGenerated;
+use MadeByClowd\AutoSequence\Events\SequenceRecycled;
+use MadeByClowd\AutoSequence\Events\SequenceResetPerformed;
 use MadeByClowd\AutoSequence\Exceptions\SequenceLockException;
 use MadeByClowd\AutoSequence\Models\Sequence;
 
@@ -31,6 +35,7 @@ class SequenceManager
      * @param  int  $step  Increment step size (default 1)
      * @param  bool  $continuous  Whether to enable continuous sequence recycling
      * @param  int|null  $maxValue  Optional maximum limit
+     * @param  int|null  $exhaustionThreshold  Percentage of $maxValue at which SequenceExhausted fires (default: config('auto-sequence.exhaustion_threshold'))
      */
     public function generate(
         string $module,
@@ -44,7 +49,8 @@ class SequenceManager
         int $startValue = 1,
         int $step = 1,
         bool $continuous = false,
-        ?int $maxValue = null
+        ?int $maxValue = null,
+        ?int $exhaustionThreshold = null
     ): string {
         if ($padLength < 1) {
             throw new Exceptions\AutoSequenceException("Sequence config 'pad_length' must be a positive integer greater than 0.");
@@ -64,6 +70,8 @@ class SequenceManager
             $formatTemplate = $formatTemplate($model);
         }
 
+        $thresholdPercent = $exhaustionThreshold ?? (int) config('auto-sequence.exhaustion_threshold', 90);
+
         // 1. Continuous Sequence (Gap Recycling) Check
         if ($continuous) {
             $recycledNumber = $this->claimRecycledNumber($resolvedConnection, $module, $typeCode, $period, $scope);
@@ -72,7 +80,7 @@ class SequenceManager
                     throw new Exceptions\AutoSequenceException("Sequence [{$module}][{$typeCode}] has exceeded its maximum limit of {$maxValue}.");
                 }
 
-                return $this->formatNumber(
+                $formattedNumber = $this->formatNumber(
                     $module,
                     $typeCode,
                     $period,
@@ -82,6 +90,10 @@ class SequenceManager
                     $padLength,
                     $model
                 );
+
+                SequenceGenerated::dispatch($module, $typeCode, $period, $scope, $formattedNumber, $model);
+
+                return $formattedNumber;
             }
         }
 
@@ -100,7 +112,9 @@ class SequenceManager
                 $scope,
                 $formatTemplate,
                 $startValue,
-                $step
+                $step,
+                $maxValue,
+                $thresholdPercent
             );
         } else {
             $nextNumber = $this->generateViaLocking(
@@ -111,7 +125,9 @@ class SequenceManager
                 $scope,
                 $formatTemplate,
                 $startValue,
-                $step
+                $step,
+                $maxValue,
+                $thresholdPercent
             );
         }
 
@@ -119,7 +135,7 @@ class SequenceManager
             throw new Exceptions\AutoSequenceException("Sequence [{$module}][{$typeCode}] has exceeded its maximum limit of {$maxValue}.");
         }
 
-        return $this->formatNumber(
+        $formattedNumber = $this->formatNumber(
             $module,
             $typeCode,
             $period,
@@ -129,6 +145,14 @@ class SequenceManager
             $padLength,
             $model
         );
+
+        SequenceGenerated::dispatch($module, $typeCode, $period, $scope, $formattedNumber, $model);
+
+        if (! empty($nextNumber['just_exhausted']) && $maxValue !== null) {
+            SequenceExhausted::dispatch($module, $typeCode, $period, $scope, $nextNumber['number'], $maxValue, $model);
+        }
+
+        return $formattedNumber;
     }
 
     /**
@@ -176,6 +200,7 @@ class SequenceManager
 
         $attributes = [
             'current_number' => $resetTo,
+            'exhausted_notified_at' => null,
         ];
 
         if ($auditEnabled && $userId) {
@@ -205,6 +230,8 @@ class SequenceManager
             $sequence->setConnection($connectionName);
             $sequence->save();
         }
+
+        SequenceResetPerformed::dispatch($module, $typeCode, $period, $scope, $resetTo);
     }
 
     /**
@@ -218,7 +245,9 @@ class SequenceManager
         string $scope,
         ?string $formatTemplate,
         int $startValue = 1,
-        int $step = 1
+        int $step = 1,
+        ?int $maxValue = null,
+        ?int $exhaustionThresholdPercent = null
     ): array {
         $lockingDriver = config('auto-sequence.locking.driver', 'database');
         $timeoutSeconds = config('auto-sequence.locking.timeout', 5);
@@ -242,7 +271,7 @@ class SequenceManager
                     throw SequenceLockException::lockAcquisitionFailed("{$module}:{$typeCode}", $timeoutSeconds);
                 }
 
-                return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $step);
+                return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $step, $maxValue, $exhaustionThresholdPercent);
             } finally {
                 $lock->release();
             }
@@ -252,10 +281,10 @@ class SequenceManager
         $connection = DB::connection($connectionName);
 
         try {
-            return $connection->transaction(function () use ($connection, $connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $timeoutSeconds) {
+            return $connection->transaction(function () use ($connection, $connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $timeoutSeconds, $maxValue, $exhaustionThresholdPercent) {
                 $this->setDatabaseLockTimeout($connection, $timeoutSeconds);
 
-                return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $step);
+                return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $step, $startValue, $step, $maxValue, $exhaustionThresholdPercent);
             });
         } catch (\Throwable $e) {
             throw SequenceLockException::lockAcquisitionFailed("{$module}:{$typeCode}", $timeoutSeconds, $e);
@@ -273,7 +302,9 @@ class SequenceManager
         string $scope,
         ?string $formatTemplate,
         int $startValue = 1,
-        int $step = 1
+        int $step = 1,
+        ?int $maxValue = null,
+        ?int $exhaustionThresholdPercent = null
     ): array {
         $cacheKey = $this->getPreAllocationCacheKey($module, $typeCode, $period, $scope);
         $blockSize = (int) config('auto-sequence.pre_allocation.block_size', 50);
@@ -292,6 +323,7 @@ class SequenceManager
             return [
                 'number' => $newCurrent,
                 'template' => $cached['template'],
+                'just_exhausted' => false,
             ];
         }
 
@@ -324,13 +356,14 @@ class SequenceManager
                 return [
                     'number' => $newCurrent,
                     'template' => $cached['template'],
+                    'just_exhausted' => false,
                 ];
             }
 
             // Increment database by block size * step
             $incrementSize = $blockSize * $step;
-            $dbResult = DB::connection($connectionName)->transaction(function () use ($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $incrementSize, $startValue, $step) {
-                return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $incrementSize, $startValue, $step);
+            $dbResult = DB::connection($connectionName)->transaction(function () use ($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $incrementSize, $startValue, $step, $maxValue, $exhaustionThresholdPercent) {
+                return $this->incrementDatabaseSequence($connectionName, $module, $typeCode, $period, $scope, $formatTemplate, $incrementSize, $startValue, $step, $maxValue, $exhaustionThresholdPercent);
             });
 
             $max = $dbResult['number'];
@@ -345,6 +378,7 @@ class SequenceManager
             return [
                 'number' => $current,
                 'template' => $dbResult['template'],
+                'just_exhausted' => $dbResult['just_exhausted'],
             ];
         } finally {
             $lock->release();
@@ -363,7 +397,9 @@ class SequenceManager
         ?string $formatTemplate,
         int $incrementBy,
         int $startValue = 1,
-        int $step = 1
+        int $step = 1,
+        ?int $maxValue = null,
+        ?int $exhaustionThresholdPercent = null
     ): array {
         $userId = Auth::id();
         $auditEnabled = config('auto-sequence.audit.enabled', false);
@@ -396,6 +432,7 @@ class SequenceManager
             $sequence = new Sequence;
             $sequence->forceFill($attributes);
             $sequence->setConnection($connectionName);
+            $justExhausted = $this->checkExhaustionThreshold($sequence, $maxValue, $exhaustionThresholdPercent);
             $sequence->save();
         } else {
             // Update template if provided and different
@@ -409,13 +446,36 @@ class SequenceManager
                 $sequence->setAttribute($updatedByColumn, $userId);
             }
 
+            $justExhausted = $this->checkExhaustionThreshold($sequence, $maxValue, $exhaustionThresholdPercent);
             $sequence->save();
         }
 
         return [
             'number' => $sequence->current_number,
             'template' => $sequence->format_template,
+            'just_exhausted' => $justExhausted,
         ];
+    }
+
+    /**
+     * Check whether this sequence just crossed its exhaustion threshold,
+     * marking it as notified (once per partition) if so.
+     */
+    protected function checkExhaustionThreshold(Sequence $sequence, ?int $maxValue, ?int $exhaustionThresholdPercent): bool
+    {
+        if ($maxValue === null || $exhaustionThresholdPercent === null || $sequence->exhausted_notified_at !== null) {
+            return false;
+        }
+
+        $thresholdValue = ($maxValue * $exhaustionThresholdPercent) / 100;
+
+        if ($sequence->current_number < $thresholdValue) {
+            return false;
+        }
+
+        $sequence->exhausted_notified_at = now();
+
+        return true;
     }
 
     /**
@@ -608,6 +668,8 @@ class SequenceManager
                     'number' => $number,
                     'created_at' => now(),
                 ]);
+
+            SequenceRecycled::dispatch($module, $typeCode, $period, $scope, $number);
         }
     }
 

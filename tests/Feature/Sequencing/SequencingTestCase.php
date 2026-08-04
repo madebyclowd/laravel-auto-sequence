@@ -48,6 +48,12 @@ abstract class SequencingTestCase extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('test_exhaustion_invoices', function ($table) {
+            $table->id();
+            $table->string('seq_exhaustion')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('test_no_manual_invoices', function ($table) {
             $table->id();
             $table->string('seq_no_manual')->nullable();

@@ -50,7 +50,8 @@ trait HasSequenceNumber
                         (int) ($config['start_value'] ?? 1),
                         (int) ($config['step'] ?? 1),
                         (bool) ($config['continuous'] ?? false),
-                        isset($config['max_value']) ? (int) $config['max_value'] : null
+                        isset($config['max_value']) ? (int) $config['max_value'] : null,
+                        isset($config['exhaustion_threshold']) ? (int) $config['exhaustion_threshold'] : null
                     );
                 } else {
                     // Enforce manual override protection

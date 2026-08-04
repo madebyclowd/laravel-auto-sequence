@@ -6,6 +6,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and thi
 New entries are generated from `.changes/*.md` changesets — see
 [.changes/README.md](.changes/README.md) — not edited here by hand.
 
+## [1.3.0] - 2026-08-04
+
+### Added
+- Two new format template tokens: a `quarterly` period option
+  (`resolveSequencePeriod()` now supports `'period' => 'quarterly'`,
+  rendering `YYYY'Q'Q` e.g. `2026Q3`), and `{checksum:mod10}`, a Luhn
+  check digit computed over every digit rendered before it in the
+  template. Validate a generated number with the new
+  `Sequence::isValidChecksum()`.
+- Four Laravel events for hooking into sequence lifecycle without touching the
+  package's internals: `SequenceGenerated` (fired on every generated number,
+  including recycled ones), `SequenceExhausted` (an early warning when a
+  sequence crosses a configurable percentage of its `max_value`, fired once
+  per partition until reset), `SequenceRecycled` (a number is actually
+  inserted into the recycle pool), and `SequenceResetPerformed` (`Sequence::reset()`
+  runs, whether called directly or via `sequence:reset`). The exhaustion
+  threshold defaults to 90% of `max_value` (new `exhaustion_threshold` config
+  key), overridable per-sequence via `getSequenceConfig()`.
+
 ## [1.2.0] - 2026-08-03
 
 ### Added
@@ -66,3 +85,5 @@ New entries are generated from `.changes/*.md` changesets — see
 [1.0.0]: https://github.com/madebyclowd/laravel-auto-sequence/releases/tag/v1.0.0
 
 [1.2.0]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.1.2...v1.2.0
+
+[1.3.0]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.2.0...v1.3.0

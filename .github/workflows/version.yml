@@ -57,8 +57,14 @@ jobs:
           git commit -m "chore(release): v${VERSION}"
           git push origin "$BRANCH" --force
 
-          if gh pr view "$BRANCH" >/dev/null 2>&1; then
-            gh pr edit "$BRANCH" --title "chore(release): v${VERSION}"
+          # `gh pr view` matches a PR by branch name regardless of state, so
+          # it can find a merged PR from a previous release cycle (the
+          # branch is force-pushed and reused). Only edit an *open* PR;
+          # otherwise open a new one.
+          OPEN_PR=$(gh pr list --head "$BRANCH" --state open --json number -q '.[0].number')
+
+          if [ -n "$OPEN_PR" ]; then
+            gh pr edit "$OPEN_PR" --title "chore(release): v${VERSION}"
           else
             gh pr create \
               --base main \

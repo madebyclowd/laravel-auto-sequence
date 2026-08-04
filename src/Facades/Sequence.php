@@ -10,6 +10,7 @@ use MadeByClowd\AutoSequence\SequenceManager;
  * @method static int getCurrent(string $module, string $typeCode, ?string $period = null, string $scope = 'default')
  * @method static void reset(string $module, string $typeCode, ?string $period = null, string $scope = 'default', int $resetTo = 0)
  * @method static void recycle(string $module, string $typeCode, string $period, string $scope, int $number, ?string $connection = null)
+ * @method static bool isValidChecksum(string $number)
  *
  * @see SequenceManager
  */

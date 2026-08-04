@@ -150,6 +150,7 @@ trait HasSequenceNumber
             'daily' => $createdAt->format('Ymd'),
             'weekly' => $createdAt->format('oW'),
             'monthly' => $createdAt->format('Ym'),
+            'quarterly' => $createdAt->format('Y').'Q'.(int) ceil($createdAt->format('n') / 3),
             'yearly' => $createdAt->format('Y'),
             'never', 'global' => 'global',
             default => is_string($periodConfig) ? $createdAt->format($periodConfig) : 'global',

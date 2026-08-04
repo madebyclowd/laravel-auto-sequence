@@ -137,7 +137,7 @@ class Invoice extends Model implements AutoSequence
             'number' => [
                 'module' => 'invoice',
                 'type_code' => 'INV',
-                'period' => 'monthly', // daily, weekly, monthly, yearly, never (or custom date formats)
+                'period' => 'monthly', // daily, weekly, monthly, quarterly, yearly, never (or custom date formats)
                 'format_template' => '{type_code}-{YYYY}-{MM}-{seq:5}', // Outputs: INV-2026-06-00001
                 'pad_length' => 5,
             ]
@@ -174,8 +174,20 @@ $invoice->save(); // Bypasses sequence generator, keeping 'MANUAL-999'
 | `{period}` | The raw value returned by a custom `period` callable | `FY2026` |
 | `{attribute:column}` | A live attribute from the model being saved (dot-notation for relations) | `{attribute:branch.company.code}` |
 | `{rand:N}` | A random alphanumeric string of length `N` | `{rand:8}` → `aZ3kQ9pL` |
+| `{checksum:mod10}` | A Luhn (mod10) check digit computed over every digit rendered before it — resolved last, so it must be the final token in the template | `{checksum:mod10}` → `4` |
 
 Example combining several: `'{type_code}-{YYYY}-{attribute:branch.code}-{seq:5}'`.
+
+### Validating a Checksum
+
+`{checksum:mod10}` numbers round-trip through `Sequence::isValidChecksum()`, which strips
+non-digit characters, treats the last digit as the claimed check digit, and recomputes the
+Luhn digit over the rest:
+
+```php
+Sequence::isValidChecksum('INV-2026-00001-4'); // true
+Sequence::isValidChecksum('INV-2026-00001-5'); // false — tampered
+```
 
 ---
 

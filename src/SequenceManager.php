@@ -556,7 +556,57 @@ class SequenceManager
             return Str::random((int) $matches[2]);
         }, $result);
 
+        // Replace checksum token last: must run over every digit already
+        // rendered before it, including non-deterministic {rand:N} output.
+        $result = preg_replace_callback('/\{checksum:mod10\}/', function ($matches) use ($result) {
+            $before = substr($result, 0, strpos($result, $matches[0]));
+            $digits = preg_replace('/\D/', '', $before);
+
+            return (string) $this->luhnCheckDigit($digits);
+        }, $result);
+
         return $result;
+    }
+
+    /**
+     * Compute the Luhn (mod10) check digit for a string of digits.
+     */
+    protected function luhnCheckDigit(string $digits): int
+    {
+        $sum = 0;
+        $alt = true;
+
+        for ($i = strlen($digits) - 1; $i >= 0; $i--) {
+            $n = (int) $digits[$i];
+            if ($alt) {
+                $n *= 2;
+                if ($n > 9) {
+                    $n -= 9;
+                }
+            }
+            $sum += $n;
+            $alt = ! $alt;
+        }
+
+        return (10 - ($sum % 10)) % 10;
+    }
+
+    /**
+     * Validate a generated number's trailing Luhn (mod10) check digit
+     * against the digits that precede it.
+     */
+    public function isValidChecksum(string $number): bool
+    {
+        $digits = preg_replace('/\D/', '', $number);
+
+        if ($digits === '' || strlen($digits) < 2) {
+            return false;
+        }
+
+        $claimedCheckDigit = (int) substr($digits, -1);
+        $rest = substr($digits, 0, -1);
+
+        return $this->luhnCheckDigit($rest) === $claimedCheckDigit;
     }
 
     /**

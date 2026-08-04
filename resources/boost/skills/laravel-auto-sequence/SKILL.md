@@ -48,7 +48,7 @@ class Invoice extends Model implements AutoSequence
             'number' => [
                 'module' => 'invoice',
                 'type_code' => 'INV',
-                'period' => 'monthly', // daily, weekly, monthly, yearly, never (or custom date format/callable)
+                'period' => 'monthly', // daily, weekly, monthly, quarterly, yearly, never (or custom date format/callable)
                 'format_template' => '{type_code}-{YYYY}-{MM}-{seq:5}', // INV-2026-06-00001
                 'pad_length' => 5,
             ]

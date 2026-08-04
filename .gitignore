@@ -11,3 +11,5 @@ Thumbs.db
 composer.lock
 /reference
 coverage.xml
+AGENTS.local.md
+CLAUDE.local.md

@@ -20,6 +20,7 @@ class Sequence extends Model
         'scope',
         'current_number',
         'format_template',
+        'exhausted_notified_at',
     ];
 
     /**
@@ -29,6 +30,7 @@ class Sequence extends Model
      */
     protected $casts = [
         'current_number' => 'integer',
+        'exhausted_notified_at' => 'datetime',
     ];
 
     /**

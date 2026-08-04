@@ -10,3 +10,6 @@ Thumbs.db
 /.vscode/
 composer.lock
 /reference
+coverage.xml
+AGENTS.local.md
+CLAUDE.local.md

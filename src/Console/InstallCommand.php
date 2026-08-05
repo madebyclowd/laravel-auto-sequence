@@ -92,13 +92,13 @@ class InstallCommand extends Command
 
         $this->newLine();
         $this->components->info('Setup finished! Next: add sequencing to a model.');
-        $this->line('    1. Implement the <fg=cyan>AutoSequence</> contract and use the <fg=cyan>HasSequenceNumber</> trait.');
+        $this->line('    1. Implement the <fg=cyan>Sequenceable</> contract and use the <fg=cyan>HasSequenceNumber</> trait.');
         $this->line('    2. Define <fg=cyan>getSequenceConfig()</> to say which column to fill and how to format it.');
         $this->newLine();
-        $this->line('    <fg=gray>use MadeByClowd\AutoSequence\Contracts\AutoSequence;</>');
+        $this->line('    <fg=gray>use MadeByClowd\AutoSequence\Contracts\Sequenceable;</>');
         $this->line('    <fg=gray>use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;</>');
         $this->newLine();
-        $this->line('    <fg=gray>class Invoice extends Model implements AutoSequence</>');
+        $this->line('    <fg=gray>class Invoice extends Model implements Sequenceable</>');
         $this->line('    <fg=gray>{</>');
         $this->line('    <fg=gray>    use HasSequenceNumber;</>');
         $this->newLine();

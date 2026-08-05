@@ -28,14 +28,14 @@ This skill and the accompanying guideline are auto-discovered by Laravel Boost d
 
 ### Basic Usage
 
-To add a sequence to a model, implement the `AutoSequence` contract and use the `HasSequenceNumber` trait:
+To add a sequence to a model, implement the `Sequenceable` contract and use the `HasSequenceNumber` trait:
 
 ```php
-use MadeByClowd\AutoSequence\Contracts\AutoSequence;
+use MadeByClowd\AutoSequence\Contracts\Sequenceable;
 use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
 use Illuminate\Database\Eloquent\Model;
 
-class Invoice extends Model implements AutoSequence
+class Invoice extends Model implements Sequenceable
 {
     use HasSequenceNumber;
 

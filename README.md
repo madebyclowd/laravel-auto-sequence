@@ -78,11 +78,11 @@ php artisan sequence:install
 or with a default of `null`), then wire up the model:
 
 ```php
-use MadeByClowd\AutoSequence\Contracts\AutoSequence;
+use MadeByClowd\AutoSequence\Contracts\Sequenceable;
 use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
 use Illuminate\Database\Eloquent\Model;
 
-class Invoice extends Model implements AutoSequence
+class Invoice extends Model implements Sequenceable
 {
     use HasSequenceNumber;
 
@@ -116,15 +116,15 @@ the full set of options.
 
 ### 1. Implement and Configure Your Model
 
-Add the `AutoSequence` contract and use the `HasSequenceNumber` trait on your Eloquent model, then
+Add the `Sequenceable` contract and use the `HasSequenceNumber` trait on your Eloquent model, then
 return one array entry per column you want to auto-fill from `getSequenceConfig()`:
 
 ```php
-use MadeByClowd\AutoSequence\Contracts\AutoSequence;
+use MadeByClowd\AutoSequence\Contracts\Sequenceable;
 use MadeByClowd\AutoSequence\Traits\HasSequenceNumber;
 use Illuminate\Database\Eloquent\Model;
 
-class Invoice extends Model implements AutoSequence
+class Invoice extends Model implements Sequenceable
 {
     use HasSequenceNumber;
 
@@ -474,7 +474,7 @@ unless you actually need to change something.
 ## Troubleshooting / FAQ
 
 **My column stays `null` after `Model::create()`.**
-Make sure the model `implements AutoSequence` (not just uses the trait) and that you didn't
+Make sure the model `implements Sequenceable` (not just uses the trait) and that you didn't
 manually set the column to a non-empty value before saving — see
 [Manual Override Protection](#2-manual-override-protection).
 

@@ -6,7 +6,7 @@ composite key `['module', 'type_code', 'period', 'scope']` partitions independen
 
 ### Core conventions
 
-- Implement `MadeByClowd\AutoSequence\Contracts\AutoSequence` and use
+- Implement `MadeByClowd\AutoSequence\Contracts\Sequenceable` and use
   `MadeByClowd\AutoSequence\Traits\HasSequenceNumber` on the model; define `getSequenceConfig()`
   returning one entry per sequenced column (`module`, `type_code`, `period`, `format_template`).
 - If the sequenced column already has a non-empty value before save, generation is skipped

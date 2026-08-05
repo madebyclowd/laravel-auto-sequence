@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and thi
 New entries are generated from `.changes/*.md` changesets — see
 [.changes/README.md](.changes/README.md) — not edited here by hand.
 
+## [1.3.1] - 2026-08-05
+
+### Fixed
+- Documentation, the installer's printed setup steps, and the Boost
+  guideline/skill files referenced a `MadeByClowd\AutoSequence\Contracts\AutoSequence`
+  interface that doesn't exist — the actual contract is `Contracts\Sequenceable`.
+  All references now point to the correct interface.
+
 ## [1.3.0] - 2026-08-04
 
 ### Added
@@ -87,3 +95,5 @@ New entries are generated from `.changes/*.md` changesets — see
 [1.2.0]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.1.2...v1.2.0
 
 [1.3.0]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.2.0...v1.3.0
+
+[1.3.1]: https://github.com/madebyclowd/laravel-auto-sequence/compare/v1.3.0...v1.3.1
